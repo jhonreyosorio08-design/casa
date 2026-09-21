@@ -1,3 +1,48 @@
-{% extends 'restaurant/base.html' %}{% block title %}Reserve a Table | Casa Sonata{% endblock %}{% block content %}
-<section class="grid min-h-screen lg:grid-cols-2"><div class="bg-ink px-6 pb-16 pt-40 text-white lg:px-16"><p class="text-xs font-bold uppercase tracking-[.3em] text-gold">Reservations</p><h1 class="mt-5 font-serif text-6xl leading-tight">Your table<br>is waiting.</h1><p class="mt-7 max-w-md leading-7 text-white/65">For parties of 7 or more, please call us directly. We’ll hold your table for 15 minutes after your reservation time.</p><div class="mt-16 border-l border-gold pl-5 text-sm leading-7 text-white/70"><p>Tuesday – Sunday</p><p>5:30pm – 11:30pm</p><p class="mt-3 text-gold">+39 02 555 0199</p></div></div><div class="px-6 py-32 lg:px-16">{% if messages %}{% for message in messages %}<div class="mb-7 border border-olive bg-olive/10 p-4 text-sm text-olive">{{ message }}</div>{% endfor %}{% endif %}<h2 class="font-serif text-4xl">Make a reservation</h2><p class="mt-2 text-sm text-ink/60">We’ll confirm your request as soon as possible.</p><form method="post" class="mt-9 grid gap-5 md:grid-cols-2">{% csrf_token %}{% for field in form %}<div class="{% if field.name == 'special_requests' %}md:col-span-2{% endif %}"><label class="mb-2 block text-xs font-bold uppercase tracking-widest text-ink/70" for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<p class="mt-1 text-xs text-clay">{{ error }}</p>{% endfor %}</div>{% endfor %}<button class="mt-2 bg-gold px-7 py-4 text-xs font-bold uppercase tracking-[.18em] text-white hover:bg-clay md:col-span-2">Send reservation request</button></form></div></section>
+{% extends 'restaurant/base.html' %}
+
+{% block title %}Reserve a Table | Casa Sonata{% endblock %}
+
+{% block content %}
+<section class="grid min-h-screen lg:grid-cols-2">
+  <div class="bg-ink px-6 pb-16 pt-40 text-white lg:px-16">
+    <p class="text-xs font-bold uppercase tracking-[.3em] text-gold">Reservations</p>
+    <h1 class="mt-5 font-serif text-6xl leading-tight">Your table<br>is waiting.</h1>
+    <p class="mt-7 max-w-md leading-7 text-white/65">For parties of 7 or more, please call us directly. We’ll hold your table for 15 minutes after your reservation time.</p>
+
+    <div class="mt-16 border-l border-gold pl-5 text-sm leading-7 text-white/70">
+      <p>Tuesday – Sunday</p>
+      <p>5:30pm – 11:30pm</p>
+      <p class="mt-3 text-gold">+39 02 555 0199</p>
+    </div>
+  </div>
+
+  <div class="px-6 py-32 lg:px-16">
+    {% if messages %}
+      {% for message in messages %}
+        <div class="mb-7 border border-olive bg-olive/10 p-4 text-sm text-olive">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+
+    <h2 class="font-serif text-4xl">Make a reservation</h2>
+    <p class="mt-2 text-sm text-ink/60">We’ll confirm your request as soon as possible.</p>
+
+    <form method="post" class="mt-9 grid gap-5 md:grid-cols-2">
+      {% csrf_token %}
+      {% for field in form %}
+        <div class="{% if field.name == 'special_requests' %}md:col-span-2{% endif %}">
+          <label class="mb-2 block text-xs font-bold uppercase tracking-widest text-ink/70" for="{{ field.id_for_label }}">
+            {{ field.label }}
+          </label>
+          {{ field }}
+          {% for error in field.errors %}
+            <p class="mt-1 text-xs text-clay">{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endfor %}
+      <button class="mt-2 bg-gold px-7 py-4 text-xs font-bold uppercase tracking-[.18em] text-white hover:bg-clay md:col-span-2">
+        Send reservation request
+      </button>
+    </form>
+  </div>
+</section>
 {% endblock %}

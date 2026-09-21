@@ -1,0 +1,3 @@
+{% extends 'restaurant/base.html' %}
+{% block title %}Payment Pending | Casa Sonata{% endblock %}
+{% block content %}<section class="mx-auto max-w-3xl px-6 pb-20 pt-40 text-center"><p class="text-xs font-bold uppercase tracking-[.3em] text-gold">GCash payment</p><h1 class="mt-4 font-serif text-5xl">Payment pending</h1><p class="mt-6 text-lg text-ink/70">Order {{ reservation.reference }} is awaiting verified GCash payment for ₱{{ order.amount }}. Your reservation will be confirmed automatically after payment verification.</p><p class="mt-6 text-sm text-ink/60">Gateway reference: {{ order.gateway_reference }}</p></section>{% endblock %}

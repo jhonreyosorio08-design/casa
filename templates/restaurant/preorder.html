@@ -1,0 +1,28 @@
+{% extends 'restaurant/base.html' %}
+{% block title %}Pre-order | Casa Sonata{% endblock %}
+{% block content %}
+<section class="bg-ink px-6 pb-16 pt-40 text-center text-white"><p class="text-xs font-bold uppercase tracking-[.3em] text-gold">Step 2 of 3</p><h1 class="mt-4 font-serif text-5xl">Choose your pre-order</h1><p class="mt-4 text-white/70">Reservation {{ reservation.reference }} · {{ reservation.table }}</p></section>
+<form method="post" class="mx-auto max-w-5xl px-6 py-16">{% csrf_token %}
+  {% if messages %}{% for message in messages %}<p class="mb-6 border border-clay p-4 text-clay">{{ message }}</p>{% endfor %}{% endif %}
+  <div class="space-y-14">
+    {% for category in categories %}
+      <section>
+        <h2 class="border-b border-gold pb-3 font-serif text-4xl">{{ category.name }}</h2>
+        <div class="divide-y divide-ink/15">
+          {% for item in category.preorder_items %}
+            <article class="grid gap-4 py-5 md:grid-cols-[1fr_auto]">
+              <div><h3 class="font-serif text-2xl">{{ item.name }}</h3><p class="mt-1 text-sm text-ink/65">{{ item.description }}</p></div>
+              <div class="flex items-center gap-4"><span class="text-gold">₱{{ item.price }}</span><label class="sr-only" for="item_{{ item.pk }}">Quantity</label><input class="order-quantity w-20" data-price="{{ item.price }}" id="item_{{ item.pk }}" name="item_{{ item.pk }}" type="number" min="0" max="20" value="0"></div>
+            </article>
+          {% empty %}<p class="py-5 text-ink/60">No items available in this category.</p>
+          {% endfor %}
+        </div>
+      </section>
+    {% empty %}<p>No orderable menu items are available yet. Add them in the administrator dashboard.</p>
+    {% endfor %}
+  </div>
+  <div class="mt-10 flex items-center justify-between border-t border-ink pt-6"><p class="font-serif text-2xl">Food order total</p><p id="order-total" class="font-serif text-3xl text-gold">₱0.00</p></div>
+  <button class="mt-6 bg-gold px-7 py-4 text-xs font-bold uppercase tracking-widest text-white hover:bg-clay">Review order and pay</button>
+</form>
+<script>document.querySelectorAll('.order-quantity').forEach(input => input.addEventListener('input', () => { let total = 0; document.querySelectorAll('.order-quantity').forEach(item => total += Number(item.value || 0) * Number(item.dataset.price)); document.getElementById('order-total').textContent = `₱${total.toFixed(2)}`; }));</script>
+{% endblock %}

@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -38,3 +39,6 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Configure this in the deployment environment before accepting GCash webhooks.
+GCASH_WEBHOOK_SECRET = os.environ.get("GCASH_WEBHOOK_SECRET", "")
