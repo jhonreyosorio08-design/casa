@@ -1,0 +1,17 @@
+[
+  {"model":"restaurant.menucategory","pk":1,"fields":{"name":"Antipasti","slug":"antipasti","order":1}},
+  {"model":"restaurant.menucategory","pk":2,"fields":{"name":"Pasta & Risotto","slug":"pasta-risotto","order":2}},
+  {"model":"restaurant.menucategory","pk":3,"fields":{"name":"Secondi","slug":"secondi","order":3}},
+  {"model":"restaurant.menucategory","pk":4,"fields":{"name":"Dolci","slug":"dolci","order":4}},
+  {"model":"restaurant.menucategory","pk":5,"fields":{"name":"Drinks","slug":"drinks","order":5}},
+  {"model":"restaurant.menuitem","pk":1,"fields":{"category":1,"name":"Burrata di Puglia","description":"Creamy burrata, roasted grapes, hazelnut and aged balsamic.","price":"15.00","image":"","featured":true,"available":true}},
+  {"model":"restaurant.menuitem","pk":2,"fields":{"category":1,"name":"Crudo di mare","description":"Today’s raw catch, citrus, fennel and Calabrian olive oil.","price":"19.00","image":"","featured":false,"available":true}},
+  {"model":"restaurant.menuitem","pk":3,"fields":{"category":2,"name":"Tagliolini al Limone","description":"Hand-cut pasta, Amalfi lemon, pecorino and basil.","price":"22.00","image":"","featured":true,"available":true}},
+  {"model":"restaurant.menuitem","pk":4,"fields":{"category":2,"name":"Risotto al Funghi","description":"Carnaroli rice, wild mushrooms, taleggio and thyme.","price":"24.00","image":"","featured":false,"available":true}},
+  {"model":"restaurant.menuitem","pk":5,"fields":{"category":3,"name":"Branzino Arrosto","description":"Roasted sea bass, braised greens, cannellini and salsa verde.","price":"31.00","image":"","featured":true,"available":true}},
+  {"model":"restaurant.menuitem","pk":6,"fields":{"category":3,"name":"Pollo alla Cacciatora","description":"Free-range chicken, tomato, olives, rosemary and soft polenta.","price":"28.00","image":"","featured":false,"available":true}},
+  {"model":"restaurant.menuitem","pk":7,"fields":{"category":4,"name":"Tiramisù della Casa","description":"Espresso-soaked savoiardi, mascarpone and dark cocoa.","price":"10.00","image":"","featured":false,"available":true}},
+  {"model":"restaurant.menuitem","pk":8,"fields":{"category":4,"name":"Olive Oil Cake","description":"Citrus olive oil cake, ricotta cream and pistachio.","price":"11.00","image":"","featured":false,"available":true}},
+  {"model":"restaurant.menuitem","pk":9,"fields":{"category":5,"name":"Sonata Spritz","description":"Bergamot aperitivo, prosecco, soda and orange.","price":"13.00","image":"","featured":false,"available":true}},
+  {"model":"restaurant.menuitem","pk":10,"fields":{"category":5,"name":"Espresso","description":"A short, rich house blend.","price":"3.50","image":"","featured":false,"available":true}}
+]

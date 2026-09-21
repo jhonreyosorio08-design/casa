@@ -1,0 +1,4 @@
+body { font-family: Arial, sans-serif; }
+input, textarea, select { width: 100%; border: 1px solid rgba(30,37,32,.28); background: transparent; padding: .8rem .9rem; font-size: .95rem; outline: none; }
+input:focus, textarea:focus, select:focus { border-color: #C9904C; box-shadow: 0 0 0 2px rgba(201,144,76,.18); }
+input[type="date"], input[type="time"] { min-height: 44px; }
