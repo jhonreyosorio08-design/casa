@@ -5,6 +5,8 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth import login
+from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Prefetch
 from django.http import HttpResponseForbidden, JsonResponse
@@ -13,7 +15,7 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from .forms import ReservationForm
+from .forms import CustomerRegistrationForm, ReservationForm
 from .models import FoodOrder, GalleryImage, MenuCategory, MenuItem, OrderItem, Reservation
 
 PREORDER_CATEGORIES = ["Pasta", "Salad", "Snacks", "Dessert", "Waffles", "Mains", "Grilled", "Soup"]
@@ -21,7 +23,7 @@ PREORDER_CATEGORIES = ["Pasta", "Salad", "Snacks", "Dessert", "Waffles", "Mains"
 
 def home(request):
     featured = MenuItem.objects.filter(featured=True, available=True)[:3]
-    return render(request, "restaurant/home.html", {"featured": featured, "gallery": GalleryImage.objects.all()[:4]})
+    return render(request, "restaurant/home.html", {"featured": featured, "gallery": GalleryImage.objects.filter(is_published=True)[:4]})
 
 
 def menu(request):
@@ -29,21 +31,34 @@ def menu(request):
 
 
 def about(request): return render(request, "restaurant/about.html")
-def gallery(request): return render(request, "restaurant/gallery.html", {"gallery": GalleryImage.objects.all()})
+def gallery(request): return render(request, "restaurant/gallery.html", {"gallery": GalleryImage.objects.filter(is_published=True)})
 def contact(request): return render(request, "restaurant/contact.html")
 
 
+def register(request):
+    form = CustomerRegistrationForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        user = form.save()
+        login(request, user)
+        return redirect("home")
+    return render(request, "restaurant/register.html", {"form": form})
+
+
+@login_required
 def reservation(request):
     form = ReservationForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
-        booking = form.save()
+        booking = form.save(commit=False)
+        booking.customer = request.user
+        booking.save()
         request.session["reservation_id"] = booking.pk
         return redirect("preorder", reference=booking.reference)
     return render(request, "restaurant/reservation.html", {"form": form})
 
 
+@login_required
 def preorder(request, reference):
-    reservation = get_object_or_404(Reservation, reference=reference)
+    reservation = get_object_or_404(Reservation, reference=reference, customer=request.user)
     menu_items = MenuItem.objects.filter(available=True, category__name__in=PREORDER_CATEGORIES).select_related("category")
     order, _ = FoodOrder.objects.get_or_create(reservation=reservation)
     if request.method == "POST":
@@ -65,8 +80,9 @@ def preorder(request, reference):
     return render(request, "restaurant/preorder.html", {"reservation": reservation, "categories": categories, "quantities": quantities})
 
 
+@login_required
 def checkout(request, reference):
-    reservation = get_object_or_404(Reservation, reference=reference)
+    reservation = get_object_or_404(Reservation, reference=reference, customer=request.user)
     order = get_object_or_404(FoodOrder.objects.prefetch_related("items"), reservation=reservation)
     if not order.items.exists(): return redirect("preorder", reference=reference)
     if request.method == "POST":
@@ -78,8 +94,9 @@ def checkout(request, reference):
     return render(request, "restaurant/checkout.html", {"reservation": reservation, "order": order})
 
 
+@login_required
 def payment_pending(request, reference):
-    reservation = get_object_or_404(Reservation, reference=reference)
+    reservation = get_object_or_404(Reservation, reference=reference, customer=request.user)
     order = get_object_or_404(FoodOrder, reservation=reservation)
     return render(request, "restaurant/payment_pending.html", {"reservation": reservation, "order": order})
 

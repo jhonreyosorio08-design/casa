@@ -41,52 +41,25 @@
 
 
 
+        {% for image in gallery %}
         <figure class="mb-5 break-inside-avoid overflow-hidden bg-olive">
-
-            <img
-                class="w-full object-cover transition duration-500 hover:scale-105"
-                src="{% static 'images/9.jpg' %}"
-                alt="Plated dish"
-            >
-
-            <figcaption class="p-4 text-sm text-white">
-                Plated Dish
-            </figcaption>
-
+            <img class="w-full object-cover transition duration-500 hover:scale-105" src="{{ image.image.url }}" alt="{{ image.title }}">
+            <figcaption class="p-4 text-sm text-white">{{ image.caption|default:image.title }}</figcaption>
         </figure>
-
-
-
+        {% empty %}
         <figure class="mb-5 break-inside-avoid overflow-hidden bg-olive">
-
-            <img
-                class="w-full object-cover transition duration-500 hover:scale-105"
-                src="{% static 'images/10.jpg' %}"
-                alt="Plated dish"
-            >
-
-            <figcaption class="p-4 text-sm text-white">
-                Plated Dish
-            </figcaption>
-
+            <img class="w-full object-cover transition duration-500 hover:scale-105" src="{% static 'images/9.jpg' %}" alt="Casa Sonata plated dish">
+            <figcaption class="p-4 text-sm text-white">A dish from the Casa Sonata kitchen</figcaption>
         </figure>
-
-
-
-
         <figure class="mb-5 break-inside-avoid overflow-hidden bg-olive">
-
-            <img
-                class="w-full object-cover transition duration-500 hover:scale-105"
-                src="{% static 'images/11.jpg' %}"
-                alt="Plated dish"
-            >
-
-            <figcaption class="p-4 text-sm text-white">
-                Plated Dish
-            </figcaption>
-
+            <img class="w-full object-cover transition duration-500 hover:scale-105" src="{% static 'images/10.jpg' %}" alt="Casa Sonata food presentation">
+            <figcaption class="p-4 text-sm text-white">Made for sharing</figcaption>
         </figure>
+        <figure class="mb-5 break-inside-avoid overflow-hidden bg-olive">
+            <img class="w-full object-cover transition duration-500 hover:scale-105" src="{% static 'images/11.jpg' %}" alt="Casa Sonata restaurant dish">
+            <figcaption class="p-4 text-sm text-white">From our table</figcaption>
+        </figure>
+        {% endfor %}
 
 
     </div>

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import DiningTable, FoodOrder, GalleryImage, MenuCategory, MenuItem, OrderItem, Reservation
+from .models import DiningTable, FoodOrder, GalleryImage, MenuCategory, MenuItem, OrderItem, Reservation, SiteContent
 
 admin.site.site_header = "Casa Sonata Administration"
 admin.site.site_title = "Casa Sonata"
@@ -42,4 +42,17 @@ class FoodOrderAdmin(admin.ModelAdmin):
 
 @admin.register(GalleryImage)
 class GalleryImageAdmin(admin.ModelAdmin):
-    list_display = ("title", "order")
+    list_display = ("title", "category", "is_published", "order")
+    list_filter = ("category", "is_published")
+
+
+@admin.register(SiteContent)
+class SiteContentAdmin(admin.ModelAdmin):
+    fieldsets = (
+        ("Home page", {"fields": ("restaurant_name", "tagline", "hero_title", "hero_description", "hero_image", "introduction_title", "introduction", "announcement")}),
+        ("About page", {"fields": ("about_title", "about_story")}),
+        ("Contact information", {"fields": ("address", "phone", "email", "opening_hours", "private_dining_text")}),
+    )
+
+    def has_add_permission(self, request):
+        return not SiteContent.objects.exists()

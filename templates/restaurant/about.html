@@ -32,7 +32,7 @@
         </p>
 
         <h1 class="mt-5 max-w-2xl font-serif text-6xl leading-tight text-white">
-            Born from a love of feeding people well.
+            {{ site_content.about_title|default:'Born from a love of feeding people well.' }}
         </h1>
 
     </div>
@@ -57,19 +57,7 @@
     <!-- Story Text -->
     <div class="space-y-6 text-lg leading-8 text-ink/70">
 
-        <p>
-            Casa Sonata began with a simple dream: create the kind of
-            restaurant that feels like the home of a dear friend with
-            exceptional taste. In 2018, founders Elena and Marco opened
-            our doors on a quiet Milanese street.
-        </p>
-
-        <p>
-            Chef Marco’s cooking is rooted in Italian tradition but guided
-            by the moment—what the farmers bring, what the sea offers,
-            and what makes the room feel alive. We make pasta by hand,
-            pour with an open hand, and believe every detail matters.
-        </p>
+        <p>{{ site_content.about_story|default:'Casa Sonata began with a simple dream: create the kind of restaurant that feels like the home of a dear friend with exceptional taste.'|linebreaksbr }}</p>
 
     </div>
 
