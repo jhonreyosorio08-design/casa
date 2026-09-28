@@ -1,0 +1,35 @@
+.side .site-link {
+  display: block;
+  margin: 0 12px 12px;
+  color: #dfbf92;
+  font-size: 11px;
+  text-decoration: none;
+}
+.side .site-link:hover { color: #fff; }
+.side .side-account { display: grid; gap: 6px; margin-bottom: 12px; }
+.side .side-account a { font-size: 10px; text-decoration: none; }
+.side .sidebottom .nav { margin: 0 0 6px; padding-left: 0; }
+.side .sidebottom form button {
+  width: 100%;
+  padding: 9px 0;
+  border: 0;
+  background: transparent;
+  color: #dfbf92;
+  text-align: left;
+  font-size: 11px;
+  cursor: pointer;
+}
+.side .sidebottom form button:hover { color: white; }
+.side .sidebottom form i { display: inline-block; width: 22px; color: #d0ad7a; font-style: normal; }
+@media(max-width:650px) {
+  .side { display: flex; flex-direction: row; align-items: center; gap: 3px 12px; flex-wrap: wrap; }
+  .side .brand { padding-left: 0; }
+  .side .caption { padding: 0; }
+  .side .site-link { margin: 4px 8px; }
+  .side .section { display: block; width: 100%; padding: 8px 0 3px; }
+  .side .nav { display: block; width: auto; margin: 0; padding: 7px 9px; }
+  .side .sidebottom { display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 8px; padding: 10px 0 0; }
+  .side .side-account { margin: 0 auto 0 0; }
+  .side .sidebottom .nav { width: auto; }
+  .side .sidebottom form { min-width: 65px; }
+}

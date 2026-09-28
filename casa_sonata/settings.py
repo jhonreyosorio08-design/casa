@@ -26,6 +26,7 @@ TEMPLATES = [{
         "django.template.context_processors.request", "django.contrib.auth.context_processors.auth",
         "django.contrib.messages.context_processors.messages",
         "restaurant.apps.site_content",
+        "restaurant.notification_utils.nav_notifications",
     ]},
 }]
 WSGI_APPLICATION = "casa_sonata.wsgi.application"

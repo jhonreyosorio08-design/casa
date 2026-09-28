@@ -1,0 +1,17 @@
+<details class="notification-menu" data-notifications-url="{{ nav_notifications.status_url }}">
+  <summary class="notification-toggle" aria-label="Notifications{% if nav_notifications.count %}, {{ nav_notifications.count }} unread{% endif %}" title="Notifications">
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg>
+    <span class="notification-badge{% if not nav_notifications.count %} is-empty{% endif %}" data-notification-badge>{{ nav_notifications.count }}</span>
+  </summary>
+  <section class="notification-dropdown" aria-label="Recent notifications">
+    <div class="notification-heading"><strong>Notifications</strong><span data-notification-count>{{ nav_notifications.count }} unread</span></div>
+    <div class="notification-items" data-notification-items>
+      {% for item in nav_notifications.items %}
+        <a class="notification-item" href="{{ item.url }}"><span class="notification-kind">{{ item.kind }}</span><span class="notification-message">{{ item.message }}</span><time>{{ item.date }}</time></a>
+      {% empty %}
+        <p class="notification-empty">You're all caught up.</p>
+      {% endfor %}
+    </div>
+    {% if nav_notifications.footer_url %}<a class="notification-footer" href="{{ nav_notifications.footer_url }}">View all notifications</a>{% endif %}
+  </section>
+</details>

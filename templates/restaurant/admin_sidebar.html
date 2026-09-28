@@ -1,0 +1,31 @@
+<aside class="side">
+  <a class="brand" href="{% url 'admin_dashboard' %}">Casa Sonata</a>
+  <div class="caption">Administrator console</div>
+  <a class="site-link" href="{% url 'public_home' %}">↗ View customer website</a>
+
+  <div class="section">Dashboard</div>
+  <a class="nav on" href="{% url 'admin_dashboard' %}"><i>◫</i>Overview</a>
+
+  <div class="section">Operations</div>
+  <a class="nav" href="/admin/restaurant/reservation/"><i>▦</i>Reservations</a>
+  <a class="nav" href="/admin/restaurant/foodorder/"><i>◉</i>Orders</a>
+  <a class="nav" href="/admin/restaurant/diningtable/"><i>▤</i>Tables 1–6</a>
+
+  <div class="section">Restaurant Management</div>
+  <a class="nav" href="/admin/restaurant/menuitem/"><i>≡</i>Menu items</a>
+  <a class="nav" href="/admin/restaurant/menucategory/"><i>⌑</i>Menu categories</a>
+  <a class="nav" href="/admin/restaurant/inventoryitem/"><i>◈</i>Inventory</a>
+  <a class="nav" href="/admin/restaurant/stockin/add/"><i>＋</i>Stock-In</a>
+  <a class="nav" href="/admin/auth/user/?is_staff__exact=0"><i>♙</i>Customers</a>
+
+  <div class="section">Management</div>
+  <a class="nav" href="/admin/auth/user/?is_staff__exact=1"><i>♧</i>Staff</a>
+  <a class="nav" href="#sales-income"><i>₱</i>Sales &amp; Income</a>
+  <a class="nav" href="#reports"><i>▥</i>Reports</a>
+
+  <div class="sidebottom">
+    <div class="side-account"><strong>{{ request.user.get_full_name|default:request.user.username }}</strong><a href="{% url 'account_profile' %}">Account settings</a></div>
+    <a class="nav" href="/admin/restaurant/sitecontent/"><i>⚙</i>Settings</a>
+    <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit"><i>↪</i>Log out</button></form>
+  </div>
+</aside>

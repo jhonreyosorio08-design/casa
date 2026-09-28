@@ -20,6 +20,17 @@ class CustomerRegistrationForm(UserCreationForm):
         return user
 
 
+class ProfileUpdateForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ("first_name", "last_name", "email")
+        widgets = {
+            "first_name": forms.TextInput(attrs={"autocomplete": "given-name"}),
+            "last_name": forms.TextInput(attrs={"autocomplete": "family-name"}),
+            "email": forms.EmailInput(attrs={"autocomplete": "email"}),
+        }
+
+
 class ReservationForm(forms.ModelForm):
     class Meta:
         model = Reservation

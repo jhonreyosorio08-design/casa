@@ -1,11 +1,22 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
+from django.urls import reverse_lazy
 from . import views
 
 urlpatterns = [
+    path("administrator/", views.admin_dashboard, name="admin_dashboard"),
+    path("staff/", views.staff_dashboard, name="staff_dashboard"),
+    path("staff/login/", views.staff_login, name="staff_login"),
+    path("staff/receipt/<int:order_id>/", views.staff_receipt, name="staff_receipt"),
+    path("account/", views.account_dashboard, name="account_dashboard"),
+    path("notifications/status/", views.notification_status, name="notification_status"),
+    path("profile/", views.account_profile, name="account_profile"),
+    path("profile/password/", auth_views.PasswordChangeView.as_view(template_name="restaurant/password_change.html", success_url=reverse_lazy("account_profile")), name="password_change"),
+    path("account/receipt/<str:reference>/", views.customer_receipt, name="customer_receipt"),
     path("accounts/login/", auth_views.LoginView.as_view(template_name="restaurant/login.html"), name="login"),
     path("accounts/logout/", auth_views.LogoutView.as_view(), name="logout"),
     path("accounts/register/", views.register, name="register"),
+    path("website/", views.public_home, name="public_home"),
     path("", views.home, name="home"), path("menu/", views.menu, name="menu"),
     path("about/", views.about, name="about"), path("gallery/", views.gallery, name="gallery"),
     path("reservations/", views.reservation, name="reservation"),

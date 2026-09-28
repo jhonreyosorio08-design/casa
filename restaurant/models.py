@@ -1,7 +1,10 @@
 import uuid
+from decimal import Decimal
 
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
+from django.core.validators import MinValueValidator
 
 
 class MenuCategory(models.Model):
@@ -65,8 +68,11 @@ class DiningTable(models.Model):
     name = models.CharField(max_length=40, unique=True)
     seats = models.PositiveSmallIntegerField()
     active = models.BooleanField(default=True)
+    occupied = models.BooleanField(default=False)
 
-    class Meta: ordering = ["seats", "name"]
+    class Meta:
+        ordering = ["seats", "name"]
+        permissions = [("view_staff_tables", "Can view table service status"), ("change_staff_tables", "Can update table service status")]
     def __str__(self): return f"{self.name} ({self.seats} seats)"
 
 
@@ -93,7 +99,9 @@ class Reservation(models.Model):
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    class Meta: ordering = ["reservation_date", "reservation_time"]
+    class Meta:
+        ordering = ["reservation_date", "reservation_time"]
+        permissions = [("view_staff_reservations", "Can view staff reservation details")]
 
     def save(self, *args, **kwargs):
         if not self.reference:
@@ -104,6 +112,13 @@ class Reservation(models.Model):
 
 
 class FoodOrder(models.Model):
+    class OrderStatus(models.TextChoices):
+        NEW = "new", "New"
+        PREPARING = "preparing", "Preparing"
+        READY = "ready", "Ready"
+        SERVED = "served", "Served"
+        COMPLETED = "completed", "Completed"
+
     class PaymentStatus(models.TextChoices):
         PENDING = "pending", "Pending"
         PAID = "paid", "Paid"
@@ -113,10 +128,20 @@ class FoodOrder(models.Model):
     reservation = models.OneToOneField(Reservation, on_delete=models.CASCADE, related_name="food_order")
     payment_method = models.CharField(max_length=30, default="gcash")
     payment_status = models.CharField(max_length=12, choices=PaymentStatus.choices, default=PaymentStatus.PENDING)
+    order_status = models.CharField(max_length=12, choices=OrderStatus.choices, default=OrderStatus.NEW)
     gateway_reference = models.CharField(max_length=160, blank=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     paid_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        permissions = [
+            ("view_staff_orders", "Can view food orders in staff interface"),
+            ("change_staff_order_status", "Can update food order status"),
+            ("view_staff_payments", "Can view customer payment details"),
+            ("change_staff_payments", "Can approve or reject customer payments"),
+            ("view_staff_reports", "Can view financial reports"),
+        ]
 
     def recalculate_total(self):
         total = sum((item.line_total for item in self.items.all()), start=0)
@@ -125,6 +150,138 @@ class FoodOrder(models.Model):
         return total
 
     def __str__(self): return f"Order {self.reservation.reference}"
+
+
+class InventoryItem(models.Model):
+    name = models.CharField(max_length=120, unique=True)
+    supplier = models.ForeignKey("Supplier", on_delete=models.SET_NULL, null=True, blank=True, related_name="inventory_items")
+    unit = models.CharField(max_length=24, default="pcs")
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    low_stock_threshold = models.DecimalField(max_digits=10, decimal_places=2, default=5)
+    unit_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    @property
+    def stock_state(self):
+        if self.quantity <= 0: return "Out of stock"
+        if self.quantity <= self.low_stock_threshold: return "Low stock"
+        return "In stock"
+
+    def __str__(self): return self.name
+
+
+class StockMovement(models.Model):
+    class Kind(models.TextChoices):
+        STOCK_IN = "in", "Stock in"
+        USAGE = "usage", "Usage"
+        ADJUSTMENT = "adjustment", "Adjustment"
+
+    item = models.ForeignKey(InventoryItem, on_delete=models.CASCADE, related_name="movements")
+    kind = models.CharField(max_length=12, choices=Kind.choices)
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal("0.01"))])
+    note = models.CharField(max_length=240, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class StockAlert(models.Model):
+    item = models.ForeignKey(InventoryItem, on_delete=models.CASCADE, related_name="alerts")
+    message = models.CharField(max_length=200)
+    created_at = models.DateTimeField(auto_now_add=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    is_resolved = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self): return self.message
+
+
+class Supplier(models.Model):
+    name = models.CharField(max_length=140, unique=True)
+    contact_name = models.CharField(max_length=120, blank=True)
+    phone = models.CharField(max_length=40, blank=True)
+    email = models.EmailField(blank=True)
+    address = models.TextField(blank=True)
+    notes = models.TextField(blank=True)
+    active = models.BooleanField(default=True)
+
+    def __str__(self): return self.name
+
+
+class StockIn(models.Model):
+    item = models.ForeignKey(InventoryItem, on_delete=models.PROTECT, related_name="stock_ins")
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal("0.01"))])
+    supplier = models.ForeignKey(Supplier, on_delete=models.SET_NULL, null=True, blank=True, related_name="stock_ins")
+    unit_cost = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal("0"))])
+    received_date = models.DateField(default=timezone.localdate)
+    reference = models.CharField(max_length=120, blank=True)
+    notes = models.TextField(blank=True)
+    recorded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-received_date", "-created_at"]
+
+    @property
+    def total_cost(self): return self.quantity * self.unit_cost
+
+    def __str__(self): return f"{self.item.name} · {self.quantity} received"
+
+
+class Expense(models.Model):
+    class Category(models.TextChoices):
+        INVENTORY = "inventory", "Inventory"
+        UTILITIES = "utilities", "Utilities"
+        PAYROLL = "payroll", "Payroll"
+        RENT = "rent", "Rent"
+        OPERATIONS = "operations", "Operations"
+        OTHER = "other", "Other"
+
+    description = models.CharField(max_length=180)
+    category = models.CharField(max_length=20, choices=Category.choices, default=Category.OTHER)
+    amount = models.DecimalField(max_digits=11, decimal_places=2, validators=[MinValueValidator(Decimal("0.01"))])
+    expense_date = models.DateField(default=timezone.localdate)
+    supplier = models.ForeignKey(Supplier, on_delete=models.SET_NULL, null=True, blank=True, related_name="expenses")
+    reference = models.CharField(max_length=120, blank=True)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-expense_date", "-created_at"]
+
+    def __str__(self): return f"{self.description} · {self.amount}"
+
+
+class CustomerNotification(models.Model):
+    class Kind(models.TextChoices):
+        RESERVATION = "reservation", "Reservation"
+        PAYMENT = "payment", "Payment"
+        ORDER = "order", "Order"
+
+    customer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="restaurant_notifications")
+    reservation = models.ForeignKey(Reservation, on_delete=models.CASCADE, related_name="notifications", null=True, blank=True)
+    kind = models.CharField(max_length=16, choices=Kind.choices)
+    message = models.CharField(max_length=240)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+
+class ActivityLog(models.Model):
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="restaurant_activity")
+    action = models.CharField(max_length=80)
+    target = models.CharField(max_length=160)
+    details = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "staff activity"
+        verbose_name_plural = "staff activity log"
+
+    def __str__(self): return f"{self.action} · {self.target}"
 
 
 class OrderItem(models.Model):
