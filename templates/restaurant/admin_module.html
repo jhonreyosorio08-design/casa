@@ -1,0 +1,71 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ title }} · Casa Sonata administration</title>
+    <style>
+        :root { color-scheme: light; --ink:#222923; --green:#344c3e; --gold:#c89558; --paper:#f4f2ec; --line:#e8e6de; }
+        * { box-sizing:border-box; }
+        body { margin:0; background:var(--paper); color:var(--ink); font:14px Arial,sans-serif; }
+        header { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px clamp(18px,5vw,64px); background:#202722; color:white; }
+        header a { color:#e8c89e; text-decoration:none; }
+        main { width:min(1200px,94vw); margin:30px auto; }
+        h1,h2 { font-family:Georgia,serif; font-weight:400; }
+        h1 { margin:0 0 8px; font-size:36px; }
+        .back { display:inline-block; margin-bottom:22px; color:var(--green); }
+        .layout { display:grid; grid-template-columns:minmax(0,1.35fr) minmax(280px,.8fr); gap:20px; align-items:start; }
+        .panel { padding:22px; border:1px solid var(--line); border-radius:10px; background:white; }
+        .record { display:flex; justify-content:space-between; gap:14px; padding:12px 0; border-bottom:1px solid var(--line); }
+        .record:last-child { border-bottom:0; }
+        .record a { color:var(--green); }
+        form p { margin:0 0 15px; }
+        label { display:block; margin-bottom:6px; font-weight:700; font-size:12px; }
+        input,select,textarea { width:100%; max-width:100%; padding:10px; border:1px solid #cfcfc7; border-radius:5px; font:inherit; }
+        input[type=checkbox] { width:auto; }
+        .helptext { display:block; margin-top:5px; color:#737970; font-size:12px; }
+        .errorlist { color:#a33d34; }
+        button { border:0; border-radius:5px; padding:11px 18px; background:var(--green); color:white; font-weight:bold; cursor:pointer; }
+        .message { margin-bottom:16px; padding:12px; border-radius:5px; background:#e7efe4; }
+        .stock-form { display:flex; flex-wrap:wrap; gap:6px; margin:7px 0 12px; }
+        .stock-form input { width:140px; }
+        .stock-form button { padding:8px 10px; font-size:11px; }
+        @media(max-width:760px) { .layout { grid-template-columns:1fr; } header { align-items:flex-start; flex-direction:column; } }
+    </style>
+</head>
+<body>
+    <header><strong>Casa Sonata · Administrator</strong><a href="{% url 'admin_dashboard' %}">Return to dashboard</a></header>
+    <main>
+        <a class="back" href="{% url 'admin_dashboard' %}">← Dashboard</a>
+        <h1>{{ title }}</h1>
+        {% if messages %}{% for message in messages %}<div class="message">{{ message }}</div>{% endfor %}{% endif %}
+        <div class="layout">
+            <section class="panel">
+                <h2>Current records</h2>
+                {% for record in records %}
+                    <div class="record"><span>{{ record }}{% if read_only %}<br><small>{{ record.email }} · {{ record.restaurant_reservations.count }} reservations</small>{% endif %}</span>{% if not read_only %}<a href="{% url 'admin_module_edit' module record.pk %}">Edit</a>{% endif %}</div>
+                    {% if read_only %}<details><summary>Reservation and order history</summary>{% for booking in record.restaurant_reservations.all %}<p><small>{{ booking.reference }} · {{ booking.reservation_date }} {{ booking.reservation_time }} · {{ booking.get_status_display }}{% if booking.food_order %} · {{ booking.food_order.get_payment_status_display }} · {{ booking.food_order.total_amount }} · <a href="{% url 'admin_receipt' booking.food_order.pk %}">Receipt</a>{% endif %}</small></p>{% empty %}<p>No reservations on record.</p>{% endfor %}</details>{% endif %}
+                    {% if module == 'orders' %}<small>{{ record.reservation.name }} · {{ record.get_order_status_display }} · {{ record.get_payment_status_display }} · {{ record.items.count }} items</small><p><a href="{% url 'admin_receipt' record.pk %}">View receipt / order summary</a></p>{% endif %}
+                    {% if module == 'tables' %}<small>{{ record.seats }} seats · {{ record.current_status_label }}</small>{% for booking in record.reservations.all %}<p><small>{{ booking.reservation_time }} · {{ booking.name }} · {{ booking.guests }} guests · {{ booking.get_status_display }}{% if booking.food_order %} · {{ booking.food_order.get_order_status_display }} · {{ booking.food_order.get_payment_status_display }} · {{ booking.food_order.total_amount }}{% endif %}</small></p>{% empty %}<p><small>No reservation today.</small></p>{% endfor %}{% endif %}
+                    {% if module == 'ktv' %}<small>{{ record.room_type }} · {{ record.min_capacity }}–{{ record.max_capacity }} guests · ₱{{ record.hourly_price }}/hour · {{ record.current_status_label }}{% if not record.active %} · Unavailable{% endif %}</small><details><summary>Reservation history ({{ record.reservations.count }})</summary>{% for booking in record.reservations.all %}<p><small>{{ booking.reservation_date }} {{ booking.reservation_time }} · {{ booking.name }} · {{ booking.guests }} guests · {{ booking.duration_hours }} hours · ₱{{ booking.ktv_fee }} · {{ booking.get_status_display }}{% if booking.food_order %} · {{ booking.food_order.get_payment_status_display }}{% endif %}</small></p>{% empty %}<p>No reservations.</p>{% endfor %}</details>{% endif %}
+                    {% if module == 'inventory' %}<small>{{ record.category }} · {{ record.quantity }} {{ record.unit }} · {{ record.stock_state }}{% if record.supplier %} · {{ record.supplier }}{% endif %}</small>{% endif %}
+                    {% if module == 'events' %}<small>{{ record.event_date }} · {{ record.get_status_display }}{% if record.featured %} · Featured{% endif %}</small>{% endif %}
+                    {% if module == 'inventory' %}<form class="stock-form" method="post" action="{% url 'admin_stock_action' %}">{% csrf_token %}<input type="hidden" name="item_id" value="{{ record.pk }}"><input type="number" name="quantity" min="0.01" step="0.01" required placeholder="Quantity"><input type="text" name="note" maxlength="240" placeholder="Note"><button name="action" value="in">Stock in</button><button name="action" value="usage">Stock out</button></form>{% endif %}
+                {% empty %}<p>No records yet.</p>{% endfor %}
+            </section>
+            {% if not read_only %}{% if can_add or editing %}
+            <section class="panel">
+                <h2>{% if editing %}Edit record{% else %}Add record{% endif %}</h2>
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <button type="submit">Save changes</button>
+                </form>
+            </section>
+            {% endif %}
+            {% endif %}
+        </div>
+    </main>
+</body>
+</html>

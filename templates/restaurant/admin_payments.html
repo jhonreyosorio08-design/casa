@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Payment review · Casa Sonata</title>
+<style>
+body{margin:0;background:#f4f2ec;color:#222923;font:14px Arial,sans-serif}header{padding:18px 5vw;background:#202722;color:#fff;display:flex;justify-content:space-between}a{color:#344c3e}header a{color:#e8c89e}main{max-width:1200px;margin:30px auto;padding:0 18px}h1{font:36px Georgia,serif}.card{background:#fff;border:1px solid #e8e6de;border-radius:9px;padding:18px;margin:12px 0;display:grid;grid-template-columns:1fr auto;gap:14px}.muted{color:#737970;font-size:12px}.actions{display:flex;gap:8px;align-items:center}button{border:0;border-radius:4px;padding:10px 14px;color:#fff;font-weight:bold;cursor:pointer}.accept{background:#344c3e}.reject{background:#a24d42}.message{background:#e7efe4;padding:12px;margin:12px 0}.proof-link{border:0;background:none;color:#344c3e;padding:0;text-decoration:underline;font:inherit;cursor:pointer}.proof-modal[hidden]{display:none}.proof-modal{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(12,17,14,.82)}.proof-dialog{position:relative;max-width:min(100%,1000px);max-height:100%;padding:18px;background:#fff;border-radius:8px}.proof-dialog h2{margin:0 48px 14px 0;font:22px Georgia,serif}.proof-image{display:block;max-width:calc(100vw - 84px);max-height:calc(100vh - 150px);object-fit:contain}.proof-close{position:absolute;top:10px;right:10px;background:#202722}.proof-open-original{display:inline-block;margin-top:12px}@media(max-width:650px){.card{grid-template-columns:1fr}.actions{justify-content:flex-start}.proof-modal{padding:12px}.proof-dialog{padding:14px}.proof-image{max-width:calc(100vw - 52px)}}
+*,*::before,*::after{box-sizing:border-box}body.proof-modal-open{overflow:hidden}.proof-modal{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;overscroll-behavior:contain}.proof-dialog{width:min(900px,calc(100vw - 32px));max-height:calc(100vh - 32px);max-height:calc(100dvh - 32px);margin:auto;overflow:auto;display:flex;flex-direction:column;align-items:center}.proof-dialog h2{width:100%;text-align:center}.proof-image{width:auto;height:auto;max-width:100%;max-height:calc(100vh - 150px);max-height:calc(100dvh - 150px);margin:0 auto;object-fit:contain}.proof-close{position:sticky;top:0;align-self:flex-end;margin-bottom:-36px;z-index:1}.proof-open-original{align-self:center}
+</style></head>
+<body><header><strong>Casa Sonata · Administrator</strong><a href="{% url 'admin_dashboard' %}">Return to dashboard</a></header><main>
+<a href="{% url 'admin_dashboard' %}">← Dashboard</a><h1>GCash payment review</h1>
+{% if messages %}{% for message in messages %}<div class="message">{{ message }}</div>{% endfor %}{% endif %}
+{% for order in payments %}<article class="card"><div><strong>{{ order.reservation.reference }} · {{ order.reservation.name }}</strong><p class="muted">{{ order.reservation.reservation_date }} {{ order.reservation.reservation_time }} · {{ order.reservation.table|default:order.reservation.ktv_room|default:'Reservation' }}</p><p>Amount: ₱{{ order.total_amount|floatformat:2 }} · Status: {{ order.get_payment_status_display }}</p><p class="muted">GCash reference: {{ order.gateway_reference|default:'Not provided' }} · Order #{{ order.pk }}</p></div>
+{% if order.payment_proof %}<p><button type="button" class="proof-link" data-proof-url="{{ order.payment_proof.url }}" data-proof-title="Payment proof · {{ order.reservation.reference }}">View uploaded payment proof</button></p>{% endif %}{% if order.payment_status == 'pending' %}<div class="actions"><form method="post">{% csrf_token %}<input type="hidden" name="order_id" value="{{ order.pk }}"><button class="accept" name="decision" value="accept">Accept</button></form><form method="post">{% csrf_token %}<input type="hidden" name="order_id" value="{{ order.pk }}"><button class="reject" name="decision" value="reject">Reject</button></form></div>{% endif %}</article>
+{% empty %}<p>No payment records are available.</p>{% endfor %}
+</main>
+<div class="proof-modal" id="proof-modal" role="dialog" aria-modal="true" aria-labelledby="proof-title" hidden>
+  <div class="proof-dialog">
+    <button class="proof-close" id="proof-close" type="button" aria-label="Close proof viewer">Close</button>
+    <h2 id="proof-title">Payment proof</h2>
+    <img class="proof-image" id="proof-image" src="" alt="Uploaded GCash payment proof">
+    <a class="proof-open-original" id="proof-open-original" href="" target="_blank" rel="noopener">Open image in new tab</a>
+  </div>
+</div>
+<script>
+(() => {
+  const modal = document.getElementById('proof-modal');
+  const image = document.getElementById('proof-image');
+  const title = document.getElementById('proof-title');
+  const original = document.getElementById('proof-open-original');
+  const close = document.getElementById('proof-close');
+  let lastTrigger = null;
+  const closeModal = () => {
+    modal.hidden = true;
+    document.body.classList.remove('proof-modal-open');
+    image.src = '';
+    lastTrigger?.focus();
+  };
+  document.querySelectorAll('[data-proof-url]').forEach((button) => {
+    button.addEventListener('click', () => {
+      lastTrigger = button;
+      image.src = button.dataset.proofUrl;
+      original.href = button.dataset.proofUrl;
+      title.textContent = button.dataset.proofTitle;
+      modal.hidden = false;
+      document.body.classList.add('proof-modal-open');
+      close.focus();
+    });
+  });
+  close.addEventListener('click', closeModal);
+  modal.addEventListener('click', (event) => { if (event.target === modal) closeModal(); });
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !modal.hidden) closeModal(); });
+})();
+</script>
+</body></html>

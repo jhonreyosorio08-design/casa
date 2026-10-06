@@ -24,7 +24,8 @@
 <body class="bg-cream text-ink antialiased">
   <header class="site-header fixed top-0 z-20 w-full text-white">
     <nav class="site-nav mx-auto flex w-full max-w-none items-center justify-between px-6 py-5 lg:px-10">
-      <a href="{% if user.is_superuser %}{% url 'public_home' %}{% else %}{% url 'home' %}{% endif %}" class="site-brand font-serif text-2xl tracking-wide">
+      <a href="{% if user.is_superuser %}{% url 'public_home' %}{% else %}{% url 'home' %}{% endif %}" class="site-brand flex items-center gap-3 font-serif text-2xl tracking-wide">
+        <img src="{% static 'images/logo.jpg' %}" alt="Casa Sonata logo" class="h-11 w-11 rounded-full object-cover ring-1 ring-white/50">
         {{ site_content.restaurant_name|default:'Casa Sonata' }}
       </a>
 
@@ -121,6 +122,6 @@
     <p class="mx-auto mt-12 max-w-7xl border-t border-white/10 pt-6 text-xs text-white/40">© 2026 Casa Sonata. Crafted for unhurried dining.</p>
   </footer>
 
-  <script src="{% static 'js/main.js' %}"></script>
+  <script src="{% static 'js/main.js' %}?v=typing-3"></script>
 </body>
 </html>

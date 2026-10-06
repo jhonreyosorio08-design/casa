@@ -16,18 +16,65 @@
     class="relative flex min-h-[760px] items-end overflow-hidden bg-ink"
 >
 
-    <img
-        class="absolute inset-0 h-full w-full object-cover opacity-65"
-        src="{% if site_content and site_content.hero_image %}{{ site_content.hero_image.url }}{% else %}https://images.unsplash.com/photo-1515003197210-e0cd71810b5f?auto=format&fit=crop&w=1900&q=85{% endif %}"
-        alt="Restaurant dining room"
-    >
+    <div class="hero-slideshow absolute inset-0" aria-label="Restaurant photos">
+        <img class="hero-slide hero-slide-one absolute inset-0 h-full w-full object-cover" src="{% static 'images/9.jpg' %}" alt="Casa Sonata restaurant">
+        <img class="hero-slide hero-slide-two absolute inset-0 h-full w-full object-cover" src="{% static 'images/10.jpg' %}" alt="Casa Sonata dining room">
+        <img class="hero-slide hero-slide-three absolute inset-0 h-full w-full object-cover" src="{% static 'images/11.jpg' %}" alt="Casa Sonata cuisine">
+    </div>
+    <style>
+        .hero-slide { opacity: 0; animation: hero-fade 18s infinite ease-in-out; }
+        .hero-slide-one { animation-delay: 0s; }
+        .hero-slide-two { animation-delay: 6s; }
+        .hero-slide-three { animation-delay: 12s; }
+        @keyframes hero-fade {
+            0%, 4% { opacity: 0; }
+            12%, 30% { opacity: .65; }
+            38%, 100% { opacity: 0; }
+        }
+        .hero-copy > * { animation: hero-text-rise .8s both cubic-bezier(.2,.7,.25,1); }
+        .hero-copy > :nth-child(1) { animation-delay: .15s; }
+        .hero-copy > :nth-child(2) { animation-delay: .32s; }
+        .hero-copy > :nth-child(3) { animation-delay: .49s; }
+        .hero-copy > :nth-child(4) { animation-delay: .66s; }
+        .typing-cursor {
+            padding-right: 3px;
+            border-right: 1px solid #c9904c;
+            animation: typing-blink 1s steps(1, end) infinite;
+        }
+        @keyframes typing-blink { 50% { border-color: transparent; } }
+        .hero-title-glow { animation: wordmark-glow 5s ease-in-out 1s infinite; }
+        @keyframes wordmark-glow {
+            0%, 100% { text-shadow: 0 0 0 rgba(201,144,76,0); }
+            50% { text-shadow: 0 0 20px rgba(201,144,76,.35); }
+        }
+        @keyframes hero-text-rise {
+            from { opacity: 0; transform: translateY(22px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .reveal-enabled [data-reveal] {
+            opacity: 0;
+            transform: translateY(26px);
+            transition: opacity .7s ease, transform .7s cubic-bezier(.2,.7,.25,1);
+        }
+        .reveal-enabled [data-reveal].is-visible { opacity: 1; transform: translateY(0); }
+        [data-reveal-list] > [data-reveal]:nth-child(2) { transition-delay: .12s; }
+        [data-reveal-list] > [data-reveal]:nth-child(3) { transition-delay: .24s; }
+        @media (prefers-reduced-motion: reduce) {
+            .hero-slide { animation: none; }
+            .hero-slide-one { opacity: .65; }
+            .hero-copy > * { animation: none; }
+            .typing-cursor { border-right: 0; animation: none; }
+            .hero-title-glow { animation: none; }
+            .reveal-enabled [data-reveal] { opacity: 1; transform: none; transition: none; }
+        }
+    </style>
 
     <div
         class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10"
     ></div>
 
     <div
-        class="relative mx-auto w-full max-w-7xl px-6 pb-24 lg:px-10"
+        class="hero-copy relative mx-auto w-full max-w-7xl px-6 pb-24 text-center lg:px-10"
     >
 
         <p
@@ -37,13 +84,18 @@
         </p>
 
         <h1
-            class="max-w-3xl font-serif text-6xl leading-[.92] text-white md:text-8xl"
+            class="mx-auto max-w-3xl font-serif text-6xl leading-[.92] text-white md:text-8xl"
         >
-            {{ site_content.hero_title|default:'Every meal, a little sonata.' }}
+            <span class="hero-title-glow inline-block">Casa Sonata</span>
         </h1>
 
+        <p class="mx-auto mt-6 min-h-12 text-base font-medium text-white/75 md:min-h-8 md:text-lg">
+            <span aria-hidden="true" class="typing-cursor" data-typing-phrases="Good food, made for sharing.|Where every meal becomes a memory.|Gather. Dine. Celebrate.|An Italian-inspired experience in every bite.">Good food, made for sharing.</span>
+            <span class="sr-only">Good food, made for sharing. Where every meal becomes a memory. Gather. Dine. Celebrate. An Italian-inspired experience in every bite.</span>
+        </p>
+
         <p
-            class="mt-7 max-w-md text-lg leading-7 text-white/80"
+            class="mx-auto mt-7 max-w-md text-lg leading-7 text-white/80"
         >
             {{ site_content.hero_description|default:'An intimate neighborhood table for seasonal Italian cooking, generous pours, and the pleasure of staying awhile.' }}
         </p>
@@ -64,6 +116,7 @@
 
 <section
     class="mx-auto grid max-w-7xl gap-12 px-6 py-24 lg:grid-cols-2 lg:px-10"
+    data-reveal
 >
 
     <div>
@@ -138,11 +191,11 @@
         </div>
 
 
-        <div class="grid gap-7 md:grid-cols-3">
+        <div class="grid gap-7 md:grid-cols-3" data-reveal-list>
 
             {% for item in featured %}
 
-            <article>
+            <article data-reveal>
 
                 <div
                     class="aspect-[4/5] overflow-hidden bg-olive"
@@ -196,7 +249,7 @@
 
 
 {% if upcoming_events %}
-<section class="px-6 py-20 lg:px-10">
+<section class="px-6 py-20 lg:px-10" data-reveal>
     <div class="mx-auto max-w-7xl">
         <div class="mb-10 flex items-end justify-between gap-6">
             <div>
@@ -206,9 +259,9 @@
             <a class="hidden border-b border-ink pb-1 text-xs font-bold uppercase tracking-widest md:block" href="{% url 'events' %}">All events</a>
         </div>
 
-        <div class="grid gap-7 md:grid-cols-3">
+        <div class="grid gap-7 md:grid-cols-3" data-reveal-list>
             {% for event in upcoming_events %}
-                <article class="border border-ink/10 bg-white">
+                <article class="border border-ink/10 bg-white" data-reveal>
                     <a href="{% url 'event_detail' slug=event.slug %}">
                         {% if event.image %}
                             <img class="aspect-[4/3] w-full object-cover" src="{{ event.image.url }}" alt="{{ event.title }} poster">
@@ -231,10 +284,11 @@
 
 <!-- Dining Experience Section -->
 
-<section class="grid md:grid-cols-2">
+<section>
 
     <div
-        class="min-h-[430px] bg-olive px-8 py-20 text-cream md:px-20"
+        class="bg-olive px-8 py-20 text-center text-cream md:px-20"
+        data-reveal
     >
 
         <p
@@ -244,13 +298,13 @@
         </p>
 
         <h2
-            class="mt-5 max-w-md font-serif text-5xl leading-tight"
+            class="mx-auto mt-5 max-w-md font-serif text-5xl leading-tight"
         >
             Save room for a beautiful evening.
         </h2>
 
         <p
-            class="mt-6 max-w-md leading-7 text-white/75"
+            class="mx-auto mt-6 max-w-md leading-7 text-white/75"
         >
             For celebrations, date nights, and every Tuesday that deserves
             better than usual.
@@ -264,12 +318,6 @@
         </a>
 
     </div>
-
-    <img
-        class="h-full min-h-[430px] w-full object-cover"
-        src="{% static 'images/21.jpg' %}"
-        alt="Casa Sonata dining experience"
-    >
 
 </section>
 

@@ -287,6 +287,19 @@
             font-size: 11px;
         }
 
+        .formrow select.order-status-select {
+            width: 118px;
+            min-width: 118px;
+            padding: 7px 8px;
+            white-space: normal;
+        }
+
+        .ktv-session-status.ending-soon { background: #fff0d9; color: #8b5615; }
+        .ktv-session-status.overdue { background: #f8e9e6; color: #a54c3f; }
+        .ktv-session-status.active { background: #e9f1e8; color: #4e714e; }
+        .extension-form { display: flex; flex-wrap: wrap; gap: 5px; min-width: 190px; }
+        .extension-form input { width: 78px; padding: 6px; font-size: 11px; }
+
         .btn {
             border: 0;
             border-radius: 5px;
@@ -500,6 +513,10 @@
 
             {% endif %}
 
+            {% if can_walkin %}
+            <a class="nav" href="{% url 'staff_walkin_payment' %}">Walk-in / OTC payment</a>
+            {% endif %}
+
 
             {% if can_tables %}
 
@@ -579,6 +596,7 @@
                         {{ request.user.groups.first.name|default:'Authorized staff' }}
                     </span>
                     <a class="back-site" href="{% url 'public_home' %}">Back to site</a>
+                    {% if can_walkin %}<a class="back-site" href="{% url 'staff_walkin_payment' %}">New walk-in / cash sale</a>{% endif %}
                 </div>
 
             </header>
@@ -714,6 +732,10 @@
                                     </th>
 
                                     <th>
+                                        Payment status
+                                    </th>
+
+                                    <th>
                                         Update
                                     </th>
 
@@ -795,8 +817,15 @@
 
 
                                     <td>
+                                        <span class="pill {% if order.payment_status == 'paid' %}green{% elif order.payment_status == 'rejected' or order.payment_status == 'failed' %}red{% endif %}">
+                                            {{ order.get_payment_status_display }}
+                                        </span>
+                                    </td>
 
-                                        {% if can_order_update %}
+
+                                    <td>
+
+                                        {% if can_order_update and order.payment_status == 'paid' and order.next_status_choices %}
 
                                         <form
                                             class="formrow"
@@ -817,32 +846,26 @@
                                                 value="{{ order.pk }}"
                                             >
 
-                                            <select name="status">
-
-                                                {% for value, label in order_status_choices %}
-
-                                                <option
-                                                    value="{{ value }}"
-                                                    {% if order.order_status == value %}selected{% endif %}
-                                                >
-                                                    {{ label }}
-                                                </option>
-
-                                                {% endfor %}
-
+                                            <select class="order-status-select" name="status" aria-label="Next order status for {{ order.reservation.reference }}">
+                                                {% for value, label in order.next_status_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
                                             </select>
 
                                             <button class="btn">
-                                                Save
+                                                Update
                                             </button>
 
                                         </form>
 
-                                        {% else %}
+                                        {% elif not can_order_update %}
 
                                         <span class="tiny">
                                             View only
                                         </span>
+
+                                        {% elif order.payment_status != 'paid' %}
+                                        <span class="tiny">Verify payment first</span>
+                                        {% else %}
+                                        <span class="tiny">No next step</span>
 
                                         {% endif %}
 
@@ -873,7 +896,7 @@
 
                                     <td
                                         class="empty"
-                                        colspan="6"
+                                        colspan="{% if can_payments %}7{% else %}6{% endif %}"
                                     >
                                         No food orders right now.
                                     </td>
@@ -1230,52 +1253,56 @@
 
                 {% if can_ktv %}
                 <section class="panel" id="ktv">
-                    <div class="panelhead">
-                        <h2>KTV rooms and today’s schedule</h2>
-                        <span class="tiny">Room settings and prices are managed by the administrator</span>
-                    </div>
+                    <div class="panelhead"><h2>KTV rooms and room status</h2><span class="tiny">Rates, capacity, availability, and current guest</span></div>
                     <div class="wrap">
                         <table>
-                            <thead><tr><th>Room</th><th>Capacity</th><th>Hourly price</th><th>Current status</th><th>Update</th></tr></thead>
+                            <thead><tr><th>Room</th><th>Room type / capacity</th><th>Hourly rate</th><th>Current status</th><th>Update</th></tr></thead>
                             <tbody>
                                 {% for room in ktv_rooms %}
                                     <tr>
-                                        <td>{{ room.name }} · {{ room.room_type }}</td>
-                                        <td>{{ room.min_capacity }}–{{ room.max_capacity }}</td>
-                                        <td>₱{{ room.hourly_price|floatformat:2 }}</td>
+                                        <td>{{ room.name }}</td>
+                                        <td>{{ room.room_type }}<br><span class="tiny">{{ room.min_capacity }} to {{ room.max_capacity }} guests</span></td>
+                                        <td>PHP {{ room.hourly_price|floatformat:2 }}</td>
                                         <td>{{ room.current_status_label }}</td>
-                                        <td>
-                                            {% if can_ktv_update %}
-                                                <form method="post" class="inline-form">
-                                                    {% csrf_token %}<input type="hidden" name="action" value="update_ktv_room_status"><input type="hidden" name="room_id" value="{{ room.pk }}">
-                                                    <select name="status">{% for value, label in room.next_status_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select>
-                                                    <button class="btn">Update</button>
-                                                </form>
-                                            {% else %}View only{% endif %}
-                                        </td>
+                                        <td>{% if can_ktv_update %}<form method="post" class="inline-form">{% csrf_token %}<input type="hidden" name="action" value="update_ktv_room_status"><input type="hidden" name="room_id" value="{{ room.pk }}"><select name="status">{% for value, label in room.next_status_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select><button class="btn">Update</button></form>{% else %}View only{% endif %}</td>
                                     </tr>
                                 {% empty %}<tr><td colspan="5">No active KTV rooms.</td></tr>{% endfor %}
                             </tbody>
                         </table>
                     </div>
 
-                    <div class="panelhead"><h2>Today’s KTV reservations</h2></div>
+                    <div class="panelhead"><h2>KTV schedule and live session timers</h2><span class="tiny">Upcoming, active, ending soon, or overdue</span></div>
                     <div class="wrap">
                         <table>
-                            <thead><tr><th>Guest</th><th>Room and time</th><th>Hours</th><th>Food order</th><th>Order status</th><th>Payment</th><th>Reservation</th><th>Cancelled at</th></tr></thead>
+                            <thead><tr><th>Customer</th><th>Room</th><th>Scheduled</th><th>Duration / end</th><th>Session timer</th><th>Food order</th><th>Order status</th><th>Payment status</th><th>Reservation</th><th>Food subtotal</th><th>KTV fee</th><th>Approved extra time</th><th>Total due</th></tr></thead>
                             <tbody>
                                 {% for booking in ktv_reservations_today %}
                                     <tr>
-                                        <td>{{ booking.name }}<br>{{ booking.phone }} · {{ booking.email }}</td>
-                                        <td>{{ booking.ktv_room }}<br>{{ booking.reservation_time }}</td>
-                                        <td>{{ booking.duration_hours }}</td>
-                                        <td>{% for item in booking.food_order.items.all %}{{ item.quantity }} × {{ item.name }}{% if not forloop.last %}<br>{% endif %}{% empty %}No items{% endfor %}</td>
-                                        <td>{{ booking.food_order.get_order_status_display|default:"—" }}</td>
-                                        <td>{{ booking.food_order.get_payment_status_display|default:"Not checked out" }}</td>
+                                        <td>{{ booking.name }}<br><span class="tiny">{{ booking.phone }}<br>{{ booking.guests }} guests</span></td>
+                                        <td>{{ booking.ktv_room.name }}<br><span class="tiny">{{ booking.ktv_room.room_type }} | PHP {{ booking.ktv_room.hourly_price|floatformat:2 }}/hour</span></td>
+                                        <td>{{ booking.reservation_date }}<br>{{ booking.scheduled_start_at|date:'g:i A' }}</td>
+                                        <td>{{ booking.duration_hours }} booked hour(s){% if booking.additional_ktv_hours %}<br>+ {{ booking.additional_ktv_hours }} paid extra{% endif %}<br><span class="tiny">Ends {{ booking.scheduled_end_at|date:'g:i A' }}</span></td>
+                                        <td><span class="pill ktv-session-status" data-ktv-start="{{ booking.scheduled_start_at|date:'c' }}" data-ktv-end="{{ booking.scheduled_end_at|date:'c' }}" data-ktv-state="{{ booking.status }}">{{ booking.ktv_timing_status }}</span><br><span class="tiny ktv-countdown" data-start="{{ booking.scheduled_start_at|date:'c' }}" data-end="{{ booking.scheduled_end_at|date:'c' }}" data-state="{{ booking.status }}">Calculating...</span></td>
+                                        <td>{% for item in booking.food_order.items.all %}{{ item.quantity }} x {{ item.name }}{% if not forloop.last %}<br>{% endif %}{% empty %}No items{% endfor %}</td>
+                                        <td>{{ booking.food_order.get_order_status_display|default:'-' }}</td>
+                                        <td>{{ booking.food_order.get_payment_status_display|default:'Not checked out' }}</td>
                                         <td>{{ booking.get_status_display }}</td>
-                                        <td>{{ booking.cancelled_at|date:'M j, Y · g:i A'|default:"—" }}</td>
+                                        <td>PHP {{ booking.food_order.amount|default:0|floatformat:2 }}</td>
+                                        <td>PHP {{ booking.ktv_fee|floatformat:2 }}</td>
+                                        <td>
+                                            {% if booking.additional_ktv_hours %}{{ booking.additional_ktv_hours }} hour(s) · PHP {{ booking.additional_ktv_fee|floatformat:2 }}{% else %}None{% endif %}
+                                            {% if can_ktv_update and booking.status == 'served' and booking.food_order.payment_status == 'paid' %}
+                                                <form method="post" class="extension-form mt-2">
+                                                    {% csrf_token %}<input type="hidden" name="action" value="add_ktv_time"><input type="hidden" name="reservation_id" value="{{ booking.pk }}">
+                                                    <input type="number" name="extra_hours" min="1" max="6" step="1" placeholder="Hours" aria-label="Additional hours" required>
+                                                    <input type="number" name="cash_received" min="0" step="0.01" placeholder="Cash PHP" aria-label="Cash received" required>
+                                                    <button class="btn">Approve and collect</button>
+                                                </form>
+                                            {% endif %}
+                                        </td>
+                                        <td>PHP {{ booking.total_amount|floatformat:2 }}</td>
                                     </tr>
-                                {% empty %}<tr><td colspan="8">No KTV reservations scheduled today.</td></tr>{% endfor %}
+                                {% empty %}<tr><td colspan="13">No upcoming or active KTV reservations.</td></tr>{% endfor %}
                             </tbody>
                         </table>
                     </div>
@@ -1351,6 +1378,8 @@
                                         Status
                                     </th>
 
+                                    <th>Update reservation</th>
+
                                 </tr>
 
                             </thead>
@@ -1389,11 +1418,25 @@
                                     </td>
 
                                     <td>
-                                        {{ booking.table.name|default:'Unassigned' }}
+                                        {% if booking.ktv_room %}{{ booking.ktv_room.name }}{% else %}{{ booking.table.name|default:'Unassigned' }}{% endif %}
                                     </td>
 
                                     <td>
                                         {{ booking.get_status_display }}
+                                    </td>
+
+                                    <td>
+                                        {% if can_reservation_update and booking.next_status_choices %}
+                                            <form method="post" class="inline-form">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="action" value="update_reservation_status">
+                                                <input type="hidden" name="reservation_id" value="{{ booking.pk }}">
+                                                <select name="status" aria-label="Next status for {{ booking.reference }}">
+                                                    {% for value, label in booking.next_status_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+                                                </select>
+                                                <button class="btn">Update</button>
+                                            </form>
+                                        {% elif can_reservation_update %}—{% else %}View only{% endif %}
                                     </td>
 
                                 </tr>
@@ -1405,7 +1448,7 @@
 
                                     <td
                                         class="empty"
-                                        colspan="5"
+                                        colspan="6"
                                     >
                                         No reservations.
                                     </td>
@@ -1735,6 +1778,44 @@
 
     </div>
 
+<script>
+(() => {
+  const timers = document.querySelectorAll('.ktv-countdown');
+  const formatDuration = (seconds) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainder = seconds % 60;
+    return [hours ? `${hours}h` : '', minutes ? `${minutes}m` : '', `${remainder}s`].filter(Boolean).join(' ');
+  };
+  const updateKtvTimers = () => {
+    const now = Date.now();
+    timers.forEach((timer) => {
+      const start = Date.parse(timer.dataset.start);
+      const end = Date.parse(timer.dataset.end);
+      const state = timer.dataset.state;
+      const badge = timer.parentElement.querySelector('.ktv-session-status');
+      if (state === 'completed' || state === 'cancelled') return;
+      if (now < start) {
+        badge.textContent = 'Upcoming';
+        badge.className = 'pill ktv-session-status';
+        timer.textContent = `Starts in ${formatDuration(Math.ceil((start - now) / 1000))}`;
+      } else if (now < end) {
+        const secondsLeft = Math.ceil((end - now) / 1000);
+        const endingSoon = secondsLeft <= 15 * 60;
+        badge.textContent = endingSoon ? 'Ending Soon' : 'Active';
+        badge.className = `pill ktv-session-status ${endingSoon ? 'ending-soon' : 'active'}`;
+        timer.textContent = `Time left ${formatDuration(secondsLeft)}`;
+      } else {
+        badge.textContent = 'Overdue';
+        badge.className = 'pill ktv-session-status overdue';
+        timer.textContent = `Overdue by ${formatDuration(Math.floor((now - end) / 1000))}`;
+      }
+    });
+  };
+  updateKtvTimers();
+  window.setInterval(updateKtvTimers, 1000);
+})();
+</script>
 </body>
 
 </html>

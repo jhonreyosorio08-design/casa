@@ -42,7 +42,7 @@
 
     <a
         class="nav"
-        href="/admin/restaurant/reservation/"
+        href="{% url 'admin_module' 'reservations' %}"
     >
         <i>▦</i>
         Reservations
@@ -50,31 +50,32 @@
 
     <a
         class="nav"
-        href="/admin/restaurant/foodorder/"
+        href="{% url 'admin_module' 'orders' %}"
     >
         <i>◉</i>
         Orders
     </a>
 
-    <a class="nav" href="/admin/restaurant/event/">
+    <a class="nav" href="{% url 'admin_payments' %}">
+        <i>₱</i>
+        GCash payments
+    </a>
+
+    <a class="nav" href="{% url 'admin_module' 'events' %}">
         Events
     </a>
 
     <a
         class="nav"
-        href="/admin/restaurant/diningtable/"
+        href="{% url 'admin_module' 'tables' %}"
     >
         <i>▤</i>
         Tables 1–6
     </a>
 
 
-    <a class="nav" href="/admin/restaurant/ktvroom/">
+    <a class="nav" href="{% url 'admin_module' 'ktv' %}">
         KTV Management
-    </a>
-
-    <a class="nav" href="/admin/restaurant/event/">
-        Events
     </a>
 
     <!-- Restaurant Management -->
@@ -85,7 +86,7 @@
 
     <a
         class="nav"
-        href="/admin/restaurant/menuitem/"
+        href="{% url 'admin_module' 'menu' %}"
     >
         <i>≡</i>
         Menu items
@@ -93,7 +94,7 @@
 
     <a
         class="nav"
-        href="/admin/restaurant/menucategory/"
+        href="{% url 'admin_module' 'menu-categories' %}"
     >
         <i>⌑</i>
         Menu categories
@@ -101,7 +102,7 @@
 
     <a
         class="nav"
-        href="/admin/restaurant/inventoryitem/"
+        href="{% url 'admin_module' 'inventory' %}"
     >
         <i>◈</i>
         Inventory
@@ -109,7 +110,7 @@
 
     <a
         class="nav"
-        href="/admin/restaurant/stockin/add/"
+        href="{% url 'admin_module' 'inventory' %}"
     >
         <i>＋</i>
         Stock-In
@@ -117,7 +118,7 @@
 
     <a
         class="nav"
-        href="/admin/auth/user/?is_staff__exact=0"
+        href="{% url 'admin_module' 'customers' %}"
     >
         <i>♙</i>
         Customers
@@ -132,7 +133,7 @@
 
     <a
         class="nav"
-        href="/admin/auth/user/?is_staff__exact=1"
+        href="{% url 'admin_module' 'staff' %}"
     >
         <i>♧</i>
         Staff
@@ -174,7 +175,7 @@
 
         <a
             class="nav"
-            href="/admin/restaurant/sitecontent/"
+            href="{% url 'admin_module' 'website' %}"
         >
             <i>⚙</i>
             Settings

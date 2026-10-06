@@ -15,25 +15,25 @@ def navigation_notifications(user):
         stock_alerts = StockAlert.objects.filter(is_resolved=False).select_related("item")
         count = customer_notes.count() + stock_alerts.count()
         for note in customer_notes[:5]:
-            items.append({"message": note.message, "kind": "Customer", "created": note.created_at, "url": "/admin/restaurant/customernotification/"})
+            items.append({"message": note.message, "kind": "Customer", "created": note.created_at, "url": reverse("notification_center") + f"#customer-{note.pk}"})
         for alert in stock_alerts[:5]:
-            items.append({"message": alert.message, "kind": "Inventory", "created": alert.created_at, "url": reverse("admin_dashboard") + "#stock-notifications"})
-        footer_url = reverse("admin_dashboard")
+            items.append({"message": alert.message, "kind": "Inventory", "created": alert.created_at, "url": reverse("notification_center") + f"#stock-{alert.pk}"})
+        footer_url = reverse("notification_center")
     elif user.is_staff:
         can_view_inventory = user.has_perm("restaurant.view_inventoryitem") or user.groups.filter(name="Inventory Staff").exists()
         if not can_view_inventory:
-            return {"count": 0, "items": [], "status_url": reverse("notification_status"), "footer_url": reverse("staff_dashboard")}
+            return {"count": 0, "items": [], "status_url": reverse("notification_status"), "footer_url": reverse("notification_center")}
         stock_alerts = StockAlert.objects.filter(is_resolved=False).select_related("item")
         count = stock_alerts.count()
         for alert in stock_alerts[:8]:
-            items.append({"message": alert.message, "kind": "Inventory", "created": alert.created_at, "url": reverse("staff_dashboard") + "#inventory"})
-        footer_url = reverse("staff_dashboard") + "#inventory"
+            items.append({"message": alert.message, "kind": "Inventory", "created": alert.created_at, "url": reverse("notification_center") + f"#stock-{alert.pk}"})
+        footer_url = reverse("notification_center")
     else:
         customer_notes = CustomerNotification.objects.filter(customer=user, is_read=False)
         count = customer_notes.count()
         for note in customer_notes[:8]:
-            items.append({"message": note.message, "kind": note.get_kind_display(), "created": note.created_at, "url": reverse("account_dashboard")})
-        footer_url = reverse("account_dashboard")
+            items.append({"message": note.message, "kind": note.get_kind_display(), "created": note.created_at, "url": reverse("notification_center") + f"#customer-{note.pk}"})
+        footer_url = reverse("notification_center")
 
     items.sort(key=lambda item: item["created"], reverse=True)
     for item in items:

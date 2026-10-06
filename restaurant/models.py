@@ -155,6 +155,21 @@ class DiningTable(models.Model):
     class Meta:
         ordering = ["seats", "name"]
         permissions = [("view_staff_tables", "Can view table service status"), ("change_staff_tables", "Can update table service status")]
+
+    @property
+    def current_status_label(self):
+        if not self.active:
+            return "Unavailable"
+        if self.occupied:
+            return "Occupied"
+        now = timezone.localtime()
+        active_statuses = [Reservation.Status.PENDING, Reservation.Status.PAID, Reservation.Status.CONFIRMED, Reservation.Status.PREPARING, Reservation.Status.READY, Reservation.Status.SERVED]
+        if self.reservations.filter(reservation_date=now.date(), food_order__order_status=FoodOrder.OrderStatus.PREPARING).exists():
+            return "Preparing"
+        if self.reservations.filter(reservation_date__gte=now.date(), status__in=active_statuses).exists():
+            return "Reserved"
+        return "Available"
+
     def __str__(self): return f"{self.name} ({self.seats} seats)"
 
 
@@ -164,12 +179,15 @@ class KTVRoom(models.Model):
         RESERVED = "reserved", "Reserved"
         OCCUPIED = "occupied", "Occupied"
         COMPLETED = "completed", "Completed"
+        MAINTENANCE = "maintenance", "Maintenance"
 
     name = models.CharField(max_length=40, unique=True)
     room_type = models.CharField(max_length=40)
     min_capacity = models.PositiveSmallIntegerField()
     max_capacity = models.PositiveSmallIntegerField()
     hourly_price = models.DecimalField(max_digits=8, decimal_places=2)
+    description = models.TextField(blank=True)
+    image = models.ImageField(upload_to="ktv_rooms/", blank=True)
     active = models.BooleanField(default=True)
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.AVAILABLE)
 
@@ -182,12 +200,14 @@ class KTVRoom(models.Model):
 
     @property
     def current_status_label(self):
+        if self.status == self.Status.MAINTENANCE:
+            return self.Status.MAINTENANCE.label
         if self.status in (self.Status.OCCUPIED, self.Status.COMPLETED):
             return self.get_status_display()
         now = timezone.localtime()
         for booking in self.reservations.filter(
-            reservation_date=now.date(),
-            status__in=[Reservation.Status.PENDING, Reservation.Status.PAID, Reservation.Status.CONFIRMED, Reservation.Status.PREPARING, Reservation.Status.READY],
+            reservation_date__gte=now.date(),
+            status__in=[Reservation.Status.PENDING, Reservation.Status.PAID, Reservation.Status.CONFIRMED, Reservation.Status.PREPARING, Reservation.Status.READY, Reservation.Status.SERVED],
         ):
             starts_at = datetime.combine(booking.reservation_date, booking.reservation_time)
             if timezone.is_naive(starts_at):
@@ -213,16 +233,18 @@ class Reservation(models.Model):
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
         PAID = "paid", "Paid"
-        CONFIRMED = "confirmed", "Confirmed"
+        CONFIRMED = "confirmed", "Reserved"
         PREPARING = "preparing", "Preparing"
         READY = "ready", "Ready"
+        SERVED = "served", "Served"
         CANCELLED = "cancelled", "Cancelled"
+        REJECTED = "rejected", "Rejected"
         COMPLETED = "completed", "Completed"
 
     reference = models.CharField(max_length=20, unique=True, editable=False, default="")
     customer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, related_name="restaurant_reservations", null=True, blank=True)
     name = models.CharField(max_length=120)
-    email = models.EmailField()
+    email = models.EmailField(blank=True)
     phone = models.CharField(max_length=30)
     reservation_date = models.DateField()
     reservation_time = models.TimeField()
@@ -238,7 +260,10 @@ class Reservation(models.Model):
 
     class Meta:
         ordering = ["reservation_date", "reservation_time"]
-        permissions = [("view_staff_reservations", "Can view staff reservation details")]
+        permissions = [
+            ("view_staff_reservations", "Can view staff reservation details"),
+            ("change_staff_reservations", "Can update staff reservation status"),
+        ]
 
     def save(self, *args, **kwargs):
         if not self.reference:
@@ -252,7 +277,46 @@ class Reservation(models.Model):
     @property
     def total_amount(self):
         food_amount = self.food_order.amount if hasattr(self, "food_order") else Decimal("0")
-        return self.ktv_fee + food_amount
+        return self.ktv_fee + self.additional_ktv_fee + food_amount
+
+    @property
+    def additional_ktv_hours(self):
+        if not self.is_ktv:
+            return 0
+        return sum(extension.hours for extension in self.time_extensions.all())
+
+    @property
+    def additional_ktv_fee(self):
+        if not self.is_ktv:
+            return Decimal("0")
+        return sum((extension.amount for extension in self.time_extensions.all()), Decimal("0"))
+
+    @property
+    def scheduled_start_at(self):
+        start_at = datetime.combine(self.reservation_date, self.reservation_time)
+        return timezone.make_aware(start_at, timezone.get_current_timezone()) if timezone.is_naive(start_at) else start_at
+
+    @property
+    def scheduled_end_at(self):
+        return self.scheduled_start_at + timedelta(hours=self.duration_hours + self.additional_ktv_hours)
+
+    @property
+    def ktv_timing_status(self):
+        if not self.is_ktv:
+            return ""
+        if self.status == self.Status.COMPLETED:
+            return "Completed"
+        if self.status == self.Status.CANCELLED:
+            return "Cancelled"
+        now = timezone.now()
+        if now < self.scheduled_start_at:
+            return "Upcoming"
+        seconds_left = (self.scheduled_end_at - now).total_seconds()
+        if seconds_left <= 0:
+            return "Overdue"
+        if seconds_left <= 15 * 60:
+            return "Ending Soon"
+        return "Active"
 
     @property
     def can_cancel_ktv(self):
@@ -263,7 +327,35 @@ class Reservation(models.Model):
             starts_at = timezone.make_aware(starts_at, timezone.get_current_timezone())
         return timezone.now() < starts_at
 
+    @property
+    def next_status_choices(self):
+        transitions = {
+            self.Status.CONFIRMED: (self.Status.PREPARING,),
+            self.Status.PREPARING: (self.Status.READY,),
+            self.Status.READY: (self.Status.SERVED,),
+            self.Status.SERVED: (self.Status.COMPLETED,),
+        }
+        allowed = transitions.get(self.status, ())
+        return tuple((value, self.Status(value).label) for value in allowed)
+
     def __str__(self): return f"{self.reference} · {self.name}"
+
+
+class KTVTimeExtension(models.Model):
+    reservation = models.ForeignKey(Reservation, on_delete=models.CASCADE, related_name="time_extensions")
+    hours = models.PositiveSmallIntegerField()
+    hourly_rate = models.DecimalField(max_digits=8, decimal_places=2)
+    amount = models.DecimalField(max_digits=9, decimal_places=2)
+    cash_received = models.DecimalField(max_digits=9, decimal_places=2)
+    cash_change = models.DecimalField(max_digits=9, decimal_places=2, default=0)
+    recorded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="ktv_time_extensions")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"{self.reservation.reference} +{self.hours} KTV hour(s)"
 
 
 class FoodOrder(models.Model):
@@ -275,8 +367,9 @@ class FoodOrder(models.Model):
         COMPLETED = "completed", "Completed"
 
     class PaymentStatus(models.TextChoices):
-        PENDING = "pending", "Pending"
+        PENDING = "pending", "Pending verification"
         PAID = "paid", "Paid"
+        REJECTED = "rejected", "Rejected"
         FAILED = "failed", "Failed"
         REFUNDED = "refunded", "Refunded"
 
@@ -285,7 +378,10 @@ class FoodOrder(models.Model):
     payment_status = models.CharField(max_length=12, choices=PaymentStatus.choices, default=PaymentStatus.PENDING)
     order_status = models.CharField(max_length=12, choices=OrderStatus.choices, default=OrderStatus.NEW)
     gateway_reference = models.CharField(max_length=160, blank=True)
+    payment_proof = models.ImageField(upload_to="payment_proofs/", blank=True, null=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    cash_received = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    cash_change = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     paid_at = models.DateTimeField(null=True, blank=True)
 
@@ -308,11 +404,23 @@ class FoodOrder(models.Model):
 
     @property
     def total_amount(self):
-        return self.amount + self.reservation.ktv_fee
+        return self.amount + self.reservation.ktv_fee + self.reservation.additional_ktv_fee
+
+    @property
+    def next_status_choices(self):
+        transitions = {
+            self.OrderStatus.NEW: (self.OrderStatus.PREPARING,),
+            self.OrderStatus.PREPARING: (self.OrderStatus.READY,),
+            self.OrderStatus.READY: (self.OrderStatus.SERVED,),
+            self.OrderStatus.SERVED: (self.OrderStatus.COMPLETED,),
+        }
+        allowed = transitions.get(self.order_status, ())
+        return tuple((value, self.OrderStatus(value).label) for value in allowed)
 
 
 class InventoryItem(models.Model):
     name = models.CharField(max_length=120, unique=True)
+    category = models.CharField(max_length=80, default="General")
     supplier = models.ForeignKey("Supplier", on_delete=models.SET_NULL, null=True, blank=True, related_name="inventory_items")
     unit = models.CharField(max_length=24, default="pcs")
     quantity = models.DecimalField(max_digits=10, decimal_places=2, default=0)

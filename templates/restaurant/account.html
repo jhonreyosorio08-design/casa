@@ -92,10 +92,20 @@
 
                         <!-- Reservation Status -->
                         <span class="border border-ink/15 px-3 py-2 text-xs uppercase tracking-widest">
-                            {{ booking.get_status_display }}
+                            {% if booking.status == 'confirmed' %}Reservation Confirmed
+                            {% elif booking.status == 'preparing' %}{% if booking.is_ktv %}Preparing Your KTV Room{% else %}Preparing Your Table{% endif %}
+                            {% elif booking.status == 'ready' %}{% if booking.is_ktv %}Your KTV Room Is Ready{% else %}Your Table Is Ready{% endif %}
+                            {% elif booking.status == 'served' %}Currently Served
+                            {% elif booking.status == 'completed' %}Reservation Completed
+                            {% else %}{{ booking.get_status_display }}{% endif %}
                         </span>
 
                     </div>
+
+                    {% if booking.is_ktv %}
+                        <p class="mt-3 text-sm text-ink/65">Room type: {{ booking.ktv_room.room_type }} · Capacity: {{ booking.ktv_room.min_capacity }}–{{ booking.ktv_room.max_capacity }} guests · KTV fee: ₱{{ booking.ktv_fee|floatformat:2 }}</p>
+                        <p class="mt-1 text-sm text-ink/65">Expected session end: {{ booking.scheduled_end_at|date:'g:i A' }}{% if booking.additional_ktv_hours %} · {{ booking.additional_ktv_hours }} additional hour(s) approved{% endif %}</p>
+                    {% endif %}
 
                     {% if booking.is_ktv %}
                         <div class="mt-5 flex flex-wrap items-center gap-4 border-t border-ink/10 pt-4">
@@ -157,11 +167,15 @@
                                 {% if booking.is_ktv %}
                                     <p class="text-xs uppercase tracking-widest text-ink/50">KTV room fee</p>
                                     <p class="mt-1">₱{{ booking.ktv_fee|floatformat:2 }}</p>
+                                    {% for extension in booking.time_extensions.all %}
+                                        <p class="mt-3 text-xs uppercase tracking-widest text-ink/50">{{ extension.hours }} additional KTV hour(s), paid in cash</p>
+                                        <p class="mt-1">₱{{ extension.amount|floatformat:2 }}</p>
+                                    {% endfor %}
                                     <p class="mt-3 text-xs uppercase tracking-widest text-ink/50">Food order</p>
                                 {% endif %}
 
                                 <p class="text-xs uppercase tracking-widest text-ink/50">
-                                    Total · GCash
+                                    Final total paid
                                 </p>
 
                                 <p class="mt-2 font-serif text-xl">
@@ -175,7 +189,11 @@
                                         text-clay
                                     {% endif %}
                                 ">
-                                    {{ booking.food_order.get_order_status_display }}
+                                    {% if booking.food_order.order_status == 'preparing' %}Preparing Your Order
+                                    {% elif booking.food_order.order_status == 'ready' %}Your Order Is Ready
+                                    {% elif booking.food_order.order_status == 'served' %}Order Served
+                                    {% elif booking.food_order.order_status == 'completed' %}Order Completed
+                                    {% else %}{{ booking.food_order.get_order_status_display }}{% endif %}
                                     ·
                                     {{ booking.food_order.get_payment_status_display }}
                                 </p>

@@ -99,7 +99,7 @@
 
     <div class="actions">
 
-        <a href="{% url 'staff_dashboard' %}">
+        <a href="{% if request.user.is_superuser %}{% url 'admin_dashboard' %}{% else %}{% url 'staff_dashboard' %}{% endif %}">
             ← Back to staff
         </a>
 
@@ -209,12 +209,24 @@
         <div class="line"></div>
 
 
+        {% if order.payment_method == 'cash' %}
+        <div class="row"><span>Cash received</span><span>&#8369;{{ order.cash_received|floatformat:2 }}</span></div>
+        <div class="row"><span>Change</span><span>&#8369;{{ order.cash_change|floatformat:2 }}</span></div>
+        <div class="line"></div>
+        {% endif %}
+
         {% if order.reservation.is_ktv %}
         <div class="row">
             <span>KTV room: {{ order.reservation.ktv_room }} ({{ order.reservation.duration_hours }} hours)</span>
             <span>₱{{ order.reservation.ktv_fee|floatformat:2 }}</span>
         </div>
         {% endif %}
+
+        {% for extension in order.reservation.time_extensions.all %}
+        <div class="row"><span>{{ extension.hours }} additional KTV hour(s) (paid in cash)</span><span>PHP {{ extension.amount|floatformat:2 }}</span></div>
+        <div class="row"><span>Cash received for added time</span><span>PHP {{ extension.cash_received|floatformat:2 }}</span></div>
+        <div class="row"><span>Change</span><span>PHP {{ extension.cash_change|floatformat:2 }}</span></div>
+        {% endfor %}
 
         {% for item in order.items.all %}
 

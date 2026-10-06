@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Walk-in payment · Casa Sonata</title>
+    <style>
+        *{box-sizing:border-box}body{margin:0;background:#f4f2ec;color:#222923;font:14px Arial,sans-serif}header{padding:18px 5vw;background:#202722;color:#fff;display:flex;justify-content:space-between}header a{color:#e8c89e}main{width:min(920px,94vw);margin:28px auto}h1,h2{font-family:Georgia,serif;font-weight:400}h1{font-size:36px;margin:12px 0}h2{font-size:24px}.panel{background:#fff;border:1px solid #e8e6de;border-radius:9px;padding:22px;margin:16px 0}.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}label{display:block;font-size:12px;font-weight:bold}input,select{width:100%;margin-top:6px;padding:11px;border:1px solid #cfcfc7;border-radius:5px;font:inherit}.menu-row{display:grid;grid-template-columns:1fr 90px 100px;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #eee}.menu-row input{margin:0}.muted{color:#737970;font-size:12px}.errors,.message{padding:12px;background:#f8e9e6;color:#813d35;margin:12px 0;border-radius:5px}.total{font-size:20px;font-weight:bold}.submit{border:0;border-radius:5px;padding:13px 20px;background:#344c3e;color:#fff;font-weight:bold;cursor:pointer}.actions{display:flex;justify-content:space-between;align-items:center;gap:12px}@media(max-width:620px){.fields{grid-template-columns:1fr}.menu-row{grid-template-columns:1fr 75px 85px}header{gap:12px;flex-direction:column}}
+    </style>
+</head>
+<body>
+<header><strong>Casa Sonata · Staff checkout</strong><a href="{% url 'staff_dashboard' %}">Back to staff dashboard</a></header>
+<main>
+    <p class="muted">WALK-IN CHECKOUT</p>
+    <h1>Reservation and over-the-counter payment</h1>
+    <p class="muted">Creates a confirmed dine-in booking, records the cash payment, and opens a printable receipt.</p>
+    {% if form.non_field_errors %}<div class="errors">{{ form.non_field_errors }}</div>{% endif %}
+    <form method="post">
+        {% csrf_token %}
+        <section class="panel">
+            <h2>Guest and table</h2>
+            <div class="fields">
+                {% for field in form %}{% if field.name != 'cash_tendered' %}<label>{{ field.label }}{{ field }}{% for error in field.errors %}<span class="errors">{{ error }}</span>{% endfor %}</label>{% endif %}{% endfor %}
+            </div>
+        </section>
+        <section class="panel">
+            <h2>Food order</h2>
+            {% for row in quantity_rows %}
+                <label class="menu-row">
+                    <span>{{ row.item.name }} <span class="muted">({{ row.item.category.name }})</span></span>
+                    <span class="muted">₱{{ row.item.price|floatformat:2 }}</span>
+                    <input type="number" min="0" max="99" step="1" name="item_{{ row.item.pk }}" value="{{ row.quantity }}" data-price="{{ row.item.price }}" aria-label="Quantity of {{ row.item.name }}">
+                </label>
+            {% empty %}<p>No available menu items.</p>{% endfor %}
+        </section>
+        <section class="panel">
+            <h2>Cash payment</h2>
+            <p class="total">Order total: ₱<span id="order-total">0.00</span></p>
+            <label>Cash received{{ form.cash_tendered }}{% for error in form.cash_tendered.errors %}<span class="errors">{{ error }}</span>{% endfor %}</label>
+        </section>
+        <div class="actions"><a href="{% url 'staff_dashboard' %}">Cancel</a><button class="submit" type="submit">Record cash payment and create receipt</button></div>
+    </form>
+</main>
+<script>
+    const menuQuantities = [...document.querySelectorAll('[data-price]')];
+    const totalLabel = document.getElementById('order-total');
+    const cashInput = document.getElementById('id_cash_tendered');
+    const refreshTotal = () => {
+        const total = menuQuantities.reduce((sum, input) => sum + (Number(input.value) || 0) * Number(input.dataset.price), 0);
+        totalLabel.textContent = total.toFixed(2);
+        if (cashInput) cashInput.min = total.toFixed(2);
+    };
+    menuQuantities.forEach(input => input.addEventListener('input', refreshTotal));
+    refreshTotal();
+</script>
+</body>
+</html>

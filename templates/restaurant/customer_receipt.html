@@ -207,6 +207,12 @@
         </div>
         {% endif %}
 
+        {% for extension in order.reservation.time_extensions.all %}
+        <div class="row"><span>{{ extension.hours }} additional KTV hour(s) (paid in cash)</span><span>PHP {{ extension.amount|floatformat:2 }}</span></div>
+        <div class="row"><span>Cash received for added time</span><span>PHP {{ extension.cash_received|floatformat:2 }}</span></div>
+        <div class="row"><span>Change</span><span>PHP {{ extension.cash_change|floatformat:2 }}</span></div>
+        {% endfor %}
+
         {% for item in order.items.all %}
 
         <div class="row">

@@ -592,11 +592,11 @@
             <article class="metric">
 
                 <div class="metriclabel">
-                    Accepted payments today
+                    Today's sales
                 </div>
 
                 <div class="metricvalue">
-                    {{ paid_today }}
+                    &#8369;{{ daily_income|floatformat:2 }}
                 </div>
 
                 <div class="metricnote">
@@ -606,7 +606,7 @@
             </article>
 
 
-            <article class="metric">
+            <article class="metric" id="orders">
 
                 <div class="metriclabel">
                     Orders today
@@ -617,13 +617,13 @@
                 </div>
 
                 <div class="metricnote">
-                    {{ pending_payments }} payments awaiting review
+                    {{ pending_payments }} pending GCash payments
                 </div>
 
             </article>
 
 
-            <article class="metric">
+            <article class="metric" id="reservations">
 
                 <div class="metriclabel">
                     Reservations today
@@ -634,7 +634,7 @@
                 </div>
 
                 <div class="metricnote">
-                    {{ staff_count }} active staff accounts
+                    Today's bookings
                 </div>
 
             </article>
@@ -643,17 +643,41 @@
             <article class="metric">
 
                 <div class="metriclabel">
-                    Inventory alerts
+                    Pending GCash payments
                 </div>
 
                 <div class="metricvalue">
-                    {{ low_inventory.count }}
+                    {{ pending_payments }}
                 </div>
 
                 <div class="metricnote">
-                    Low or out of stock
+                    Awaiting verification
                 </div>
 
+            </article>
+
+            <article class="metric">
+                <div class="metriclabel">Occupied tables</div>
+                <div class="metricvalue">{{ occupied_tables }}</div>
+                <div class="metricnote">Active dine-in tables</div>
+            </article>
+
+            <article class="metric">
+                <div class="metriclabel">Active KTV rooms</div>
+                <div class="metricvalue">{{ active_ktv_rooms }}</div>
+                <div class="metricnote">Configured rooms</div>
+            </article>
+
+            <article class="metric">
+                <div class="metriclabel">Low-stock items</div>
+                <div class="metricvalue">{{ low_inventory.count }}</div>
+                <div class="metricnote">{{ out_of_stock_count }} out of stock</div>
+            </article>
+
+            <article class="metric">
+                <div class="metriclabel">Upcoming events</div>
+                <div class="metricvalue">{{ upcoming_event_count }}</div>
+                <div class="metricnote">Published events</div>
             </article>
 
         </section>
@@ -797,7 +821,7 @@
                  MANAGEMENT
             ================================================== -->
 
-            <section class="panel">
+            <section class="panel" id="management">
 
                 <div class="panelhead">
 
@@ -816,72 +840,72 @@
 
                     <a
                         class="linkcard"
-                        href="/admin/auth/user/"
+                        href="{% url 'admin_module' 'staff' %}"
                     >
                         Staff & permissions
 
                         <span>
-                            Create, deactivate, assign roles
+                            Manage staff accounts and assigned access
                         </span>
                     </a>
 
 
                     <a
                         class="linkcard"
-                        href="/admin/restaurant/sitecontent/"
+                        href="{% url 'admin_module' 'website' %}"
                     >
                         Website content
 
                         <span>
-                            Home, about, contact
+                            Edit the homepage and contact content
                         </span>
                     </a>
 
 
                     <a
                         class="linkcard"
-                        href="/admin/restaurant/menuitem/"
+                        href="{% url 'admin_module' 'menu' %}"
                     >
                         Menu & gallery
 
                         <span>
-                            Public content
+                            Edit menu items and availability
                         </span>
                     </a>
 
 
                     <a
                         class="linkcard"
-                        href="/admin/restaurant/supplier/"
+                        href="{% url 'admin_module' 'suppliers' %}"
                     >
                         Suppliers
 
                         <span>
-                            Contacts and purchasing
+                            Edit supplier contacts
                         </span>
                     </a>
 
 
                     <a
                         class="linkcard"
-                        href="/admin/restaurant/expense/"
+                        href="{% url 'admin_module' 'expenses' %}"
                     >
                         Expenses
 
                         <span>
-                            Record operating costs
+                            Record and review operating expenses
                         </span>
                     </a>
 
 
                     <a
                         class="linkcard"
-                        href="/admin/restaurant/stockmovement/"
+                        href="{% url 'admin_module' 'inventory' %}"
                     >
                         Inventory history
 
                         <span>
-                            Read-only movement audit
+                            Review supplies and stock levels
                         </span>
                     </a>
 
@@ -894,7 +918,7 @@
                  INVENTORY ATTENTION
             ================================================== -->
 
-            <section class="panel">
+            <section class="panel" id="inventory-attention">
 
                 <div class="panelhead">
 
@@ -904,7 +928,7 @@
 
                     <a
                         class="subtle"
-                        href="/admin/restaurant/inventoryitem/"
+                        href="#inventory-attention"
                     >
                         Manage inventory ↗
                     </a>
@@ -957,11 +981,22 @@
             </section>
 
 
+            <section class="panel" id="upcoming-events">
+                <div class="panelhead">
+                    <h2>Upcoming events</h2>
+                    <a class="subtle" href="{% url 'admin_module' 'events' %}">Manage events</a>
+                </div>
+                {% for event in upcoming_events %}
+                    <ul class="lowlist"><li><span>{{ event.title }}<span class="subtle"> · {{ event.event_date|date:'M j' }} at {{ event.start_time }}</span></span><strong>{{ event.get_status_display }}</strong></li></ul>
+                {% empty %}<p class="empty">No published events are scheduled.</p>{% endfor %}
+            </section>
+
+
             <!-- =================================================
                  QUICK COUNTS
             ================================================== -->
 
-            <section class="panel">
+            <section class="panel" id="quick-counts">
 
                 <div class="panelhead">
 
@@ -1011,7 +1046,7 @@
 
         <section
             class="panel activity"
-            id="activity"
+            id="staff-activity"
         >
 
             <div class="panelhead">
@@ -1022,7 +1057,7 @@
 
                 <a
                     class="subtle"
-                    href="/admin/restaurant/activitylog/"
+                    href="#staff-activity"
                 >
                     Full audit log ↗
                 </a>

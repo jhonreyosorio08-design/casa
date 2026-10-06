@@ -2,6 +2,68 @@ const toggle = document.getElementById('menu-toggle');
 const mobile = document.getElementById('mobile-links');
 if (toggle && mobile) toggle.addEventListener('click', () => mobile.classList.toggle('hidden'));
 
+const revealItems = document.querySelectorAll('[data-reveal]');
+if (revealItems.length && 'IntersectionObserver' in window && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  document.documentElement.classList.add('reveal-enabled');
+  const revealObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add('is-visible');
+      revealObserver.unobserve(entry.target);
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -35px 0px' });
+  revealItems.forEach(item => revealObserver.observe(item));
+}
+
+const typingPhrases = document.querySelectorAll('[data-typing-phrases]');
+if (typingPhrases.length) {
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  typingPhrases.forEach(element => {
+    const phrases = (element.dataset.typingPhrases || '').split('|').filter(Boolean);
+    if (!phrases.length) return;
+    if (reduceMotion) {
+      let reducedIndex = 0;
+      window.setInterval(() => {
+        reducedIndex = (reducedIndex + 1) % phrases.length;
+        element.textContent = phrases[reducedIndex];
+      }, 5000);
+      return;
+    }
+    let phraseIndex = 0;
+    let position = 0;
+    let deleting = false;
+    element.textContent = '';
+
+    const typeNext = () => {
+      const phrase = phrases[phraseIndex];
+      if (deleting) {
+        position = Math.max(0, position - 1);
+        element.textContent = phrase.slice(0, position);
+        if (position === 0) {
+          deleting = false;
+          phraseIndex = (phraseIndex + 1) % phrases.length;
+          window.setTimeout(typeNext, 300);
+          return;
+        }
+        window.setTimeout(typeNext, 38);
+        return;
+      }
+
+      const nextPhrase = phrases[phraseIndex];
+      position = Math.min(nextPhrase.length, position + 1);
+      element.textContent = nextPhrase.slice(0, position);
+      if (position === nextPhrase.length) {
+        deleting = true;
+        window.setTimeout(typeNext, 3200);
+        return;
+      }
+      window.setTimeout(typeNext, 82);
+    };
+
+    window.setTimeout(typeNext, 400);
+  });
+}
+
 const loginModal = document.getElementById('login-modal');
 document.querySelectorAll('.js-open-login').forEach(button => {
   button.addEventListener('click', () => {
