@@ -1,6 +1,287 @@
-<section id="reports" class="panel activity" style="margin-top:14px"><div class="panelhead"><h2>Operations by period</h2><span class="subtle">Orders, reservations, accepted payments</span></div><div style="overflow:auto"><table><thead><tr><th>Period</th><th>Orders</th><th>Reservations</th><th>Accepted payments</th></tr></thead><tbody><tr><td>Today</td><td>{{ orders_today }}</td><td>{{ reservations_today }}</td><td>{{ paid_today }}</td></tr><tr><td>This week</td><td>{{ orders_week }}</td><td>{{ reservations_week }}</td><td>{{ accepted_week }}</td></tr><tr><td>This month</td><td>{{ orders_month }}</td><td>{{ reservations_month }}</td><td>{{ accepted_month }}</td></tr><tr><td>Year to date</td><td>{{ orders_year }}</td><td>{{ reservations_year }}</td><td>{{ accepted_year }}</td></tr></tbody></table></div></section>
-<div class="lower"><section class="panel"><div class="panelhead"><h2>Order trend · last 7 days</h2><span class="subtle">New orders per day</span></div><div class="bars">{% for row in weekly_orders %}<div class="day"><div class="bar" title="{{ row.count }} orders" style="height:{{ row.height }}%"></div><span class="daylabel">{{ row.label }} · {{ row.count }}</span></div>{% endfor %}</div></section>
-<section class="panel"><div class="panelhead"><h2>Popular menu items</h2><a class="subtle" href="/admin/restaurant/orderitem/">Order item records ↗</a></div><div class="activity"><table><thead><tr><th>Menu item</th><th>Qty sold</th><th>Sales</th></tr></thead><tbody>{% for item in popular_items %}<tr><td>{{ item.name }}</td><td>{{ item.quantity_sold }}</td><td>₱{{ item.revenue|floatformat:2 }}</td></tr>{% empty %}<tr><td class="empty" colspan="3">Paid order items will show here.</td></tr>{% endfor %}</tbody></table></div></section>
-<section class="panel"><div class="panelhead"><h2>Stock notifications</h2><a class="subtle" href="/admin/restaurant/stockalert/">All alerts ↗</a></div><div class="subtle" style="margin-bottom:8px">{{ notification_count }} unread customer and active stock notification(s)</div>{% for alert in open_stock_alerts|slice:":6" %}<div class="lowlist"><li><span>{{ alert.message }}</span><span class="pill {% if alert.item.quantity <= 0 %}red{% endif %}">{% if alert.item.quantity <= 0 %}Out{% else %}Low{% endif %}</span></li></div>{% empty %}<p class="empty">No active low-stock alerts.</p>{% endfor %}<a class="linkcard" style="display:block;margin-top:10px" href="/admin/restaurant/stockin/add/">＋ Record stock-in<span>Item, quantity, supplier, cost, and received date</span></a></section>
-<section class="panel"><div class="panelhead"><h2>Table performance · month</h2><a class="subtle" href="/admin/restaurant/diningtable/">Manage tables ↗</a></div><div class="activity"><table><thead><tr><th>Table</th><th>Current</th><th>Reservations</th><th>Orders</th><th>Sales</th></tr></thead><tbody>{% for table in table_metrics %}<tr><td>{{ table.name }}</td><td>{% if table.occupied %}<span class="pill red">Occupied</span>{% else %}<span class="pill">Available</span>{% endif %}</td><td>{{ table.reservation_count }}</td><td>{{ table.order_count }}</td><td>₱{{ table.table_income|default:0|floatformat:2 }}</td></tr>{% endfor %}</tbody></table></div></section></div>
-<section class="panel activity"><div class="panelhead"><h2>Orders assigned to tables</h2><a class="subtle" href="/admin/restaurant/foodorder/">All orders and payments ↗</a></div><div style="overflow:auto"><table><thead><tr><th>Table / booking</th><th>Customer order</th><th>Total</th><th>Payment</th><th>Order status</th><th>Receipt</th></tr></thead><tbody>{% for order in recent_table_orders %}<tr><td><strong>{{ order.reservation.table.name }}</strong><br>{{ order.reservation.reference }} · {{ order.reservation.name }}</td><td>{% for item in order.items.all %}{{ item.quantity }} × {{ item.name }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</td><td>₱{{ order.amount|floatformat:2 }}</td><td>{{ order.get_payment_status_display }}</td><td>{{ order.get_order_status_display }}</td><td><a href="{% url 'staff_receipt' order_id=order.pk %}">View / print</a></td></tr>{% empty %}<tr><td class="empty" colspan="6">Table orders will appear here.</td></tr>{% endfor %}</tbody></table></div></section>
+<section id="ktv-income" class="panel activity" style="margin-top:14px">
+    <div class="panelhead">
+        <h2>KTV income</h2>
+        <span class="subtle">Room fees from accepted payments</span>
+    </div>
+    <div class="activity">
+        <table>
+            <thead><tr><th>Period</th><th>KTV room income</th><th>Food and drinks</th></tr></thead>
+            <tbody>
+                <tr><td>Today</td><td>₱{{ ktv_income_today|floatformat:2 }}</td><td>₱{{ food_income_today|floatformat:2 }}</td></tr>
+                <tr><td>This week</td><td>₱{{ ktv_income_week|floatformat:2 }}</td><td>₱{{ food_income_week|floatformat:2 }}</td></tr>
+                <tr><td>This month</td><td>₱{{ ktv_income_month|floatformat:2 }}</td><td>₱{{ food_income_month|floatformat:2 }}</td></tr>
+                <tr><td>This year</td><td>₱{{ ktv_income_year|floatformat:2 }}</td><td>₱{{ food_income_year|floatformat:2 }}</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section id="reports" class="panel activity" style="margin-top:14px">
+    <div class="panelhead">
+        <h2>Operations by period</h2>
+        <span class="subtle">Orders, reservations, accepted payments</span>
+    </div>
+
+    <div style="overflow:auto">
+        <table>
+            <thead>
+                <tr>
+                    <th>Period</th>
+                    <th>Orders</th>
+                    <th>Reservations</th>
+                    <th>Accepted payments</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Today</td>
+                    <td>{{ orders_today }}</td>
+                    <td>{{ reservations_today }}</td>
+                    <td>{{ paid_today }}</td>
+                </tr>
+                <tr>
+                    <td>This week</td>
+                    <td>{{ orders_week }}</td>
+                    <td>{{ reservations_week }}</td>
+                    <td>{{ accepted_week }}</td>
+                </tr>
+                <tr>
+                    <td>This month</td>
+                    <td>{{ orders_month }}</td>
+                    <td>{{ reservations_month }}</td>
+                    <td>{{ accepted_month }}</td>
+                </tr>
+                <tr>
+                    <td>Year to date</td>
+                    <td>{{ orders_year }}</td>
+                    <td>{{ reservations_year }}</td>
+                    <td>{{ accepted_year }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<div class="lower">
+    <section class="panel">
+        <div class="panelhead">
+            <h2>Order trend Â· last 7 days</h2>
+            <span class="subtle">New orders per day</span>
+        </div>
+
+        <div class="bars">
+            {% for row in weekly_orders %}
+                <div class="day">
+                    <div class="bar" title="{{ row.count }} orders" style="height:{{ row.height }}%"></div>
+                    <span class="daylabel">{{ row.label }} Â· {{ row.count }}</span>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="panelhead">
+            <h2>Popular menu items</h2>
+            <a class="subtle" href="/admin/restaurant/orderitem/">Order item records â†—</a>
+        </div>
+
+        <div class="activity">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Menu item</th>
+                        <th>Qty sold</th>
+                        <th>Sales</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in popular_items %}
+                        <tr>
+                            <td>{{ item.name }}</td>
+                            <td>{{ item.quantity_sold }}</td>
+                            <td>â‚±{{ item.revenue|floatformat:2 }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td class="empty" colspan="3">Paid order items will show here.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="panelhead">
+            <h2>Stock notifications</h2>
+            <a class="subtle" href="/admin/restaurant/stockalert/">All alerts â†—</a>
+        </div>
+
+        <div class="subtle" style="margin-bottom:8px">
+            {{ notification_count }} unread customer and active stock notification(s)
+        </div>
+
+        {% for alert in open_stock_alerts|slice:":6" %}
+            <div class="lowlist">
+                <li>
+                    <span>{{ alert.message }}</span>
+                    <span class="pill {% if alert.item.quantity <= 0 %}red{% endif %}">
+                        {% if alert.item.quantity <= 0 %}Out{% else %}Low{% endif %}
+                    </span>
+                </li>
+            </div>
+        {% empty %}
+            <p class="empty">No active low-stock alerts.</p>
+        {% endfor %}
+
+        <a class="linkcard" style="display:block;margin-top:10px" href="/admin/restaurant/stockin/add/">
+            ï¼‹ Record stock-in
+            <span>Item, quantity, supplier, cost, and received date</span>
+        </a>
+    </section>
+
+    <section class="panel">
+        <div class="panelhead">
+            <h2>Table performance Â· month</h2>
+            <a class="subtle" href="/admin/restaurant/diningtable/">Manage tables â†—</a>
+        </div>
+
+        <div class="activity">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Table</th>
+                        <th>Current</th>
+                        <th>Reservations</th>
+                        <th>Orders</th>
+                        <th>Sales</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for table in table_metrics %}
+                        <tr>
+                            <td>{{ table.name }}</td>
+                            <td>
+                                {% if table.occupied %}
+                                    <span class="pill red">Occupied</span>
+                                {% else %}
+                                    <span class="pill">Available</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ table.reservation_count }}</td>
+                            <td>{{ table.order_count }}</td>
+                            <td>â‚±{{ table.table_income|default:0|floatformat:2 }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+<section class="panel activity">
+    <div class="panelhead">
+        <h2>KTV Management</h2>
+        <a class="subtle" href="/admin/restaurant/ktvroom/">Manage rooms and rates</a>
+    </div>
+    <div class="activity" style="overflow:auto">
+        <table>
+            <thead><tr><th>Room</th><th>Capacity</th><th>Hourly price</th><th>Availability</th></tr></thead>
+            <tbody>
+                {% for room in ktv_rooms %}
+                    <tr><td>{{ room.name }} · {{ room.room_type }}</td><td>{{ room.min_capacity }}–{{ room.max_capacity }}</td><td>₱{{ room.hourly_price|floatformat:2 }}</td><td>{{ room.get_status_display }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="panelhead"><h2>KTV reservations</h2></div>
+    <div class="activity" style="overflow:auto">
+        <table>
+            <thead><tr><th>Customer</th><th>Room and schedule</th><th>Hours</th><th>KTV fee</th><th>Food order</th><th>Payment</th><th>Total</th><th>Status</th><th>Cancelled at</th></tr></thead>
+            <tbody>
+                {% for booking in ktv_reservations %}
+                    <tr>
+                        <td>{{ booking.name }}<br>{{ booking.email }} · {{ booking.phone }}</td>
+                        <td>{{ booking.ktv_room }}<br>{{ booking.reservation_date }} at {{ booking.reservation_time }}</td>
+                        <td>{{ booking.duration_hours }}</td>
+                        <td>₱{{ booking.ktv_fee|floatformat:2 }}</td>
+                        <td>{% for item in booking.food_order.items.all %}{{ item.quantity }} × {{ item.name }}{% if not forloop.last %}<br>{% endif %}{% empty %}No items yet{% endfor %}<br>₱{{ booking.food_order.amount|default:0|floatformat:2 }}</td>
+                        <td>{{ booking.food_order.get_payment_status_display|default:"Not checked out" }}</td>
+                        <td>₱{{ booking.total_amount|floatformat:2 }}</td>
+                        <td>{{ booking.get_status_display }}</td>
+                        <td>{{ booking.cancelled_at|date:'M j, Y · g:i A'|default:"—" }}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td class="empty" colspan="9">No KTV reservations yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="panelhead"><h2>Cancelled KTV reservations</h2></div>
+    <div class="activity" style="overflow:auto">
+        <table>
+            <thead><tr><th>Customer</th><th>Room and schedule</th><th>Hours</th><th>KTV fee</th><th>Payment status</th><th>Cancelled at</th></tr></thead>
+            <tbody>
+                {% for booking in ktv_cancellations %}
+                    <tr>
+                        <td>{{ booking.name }}<br>{{ booking.email }} · {{ booking.phone }}</td>
+                        <td>{{ booking.ktv_room }}<br>{{ booking.reservation_date }} at {{ booking.reservation_time }}</td>
+                        <td>{{ booking.duration_hours }}</td>
+                        <td>₱{{ booking.ktv_fee|floatformat:2 }}</td>
+                        <td>{{ booking.food_order.get_payment_status_display|default:"Not checked out" }}</td>
+                        <td>{{ booking.cancelled_at|date:'M j, Y · g:i A'|default:"—" }}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td class="empty" colspan="6">No cancelled KTV reservations.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="panel activity">
+    <div class="panelhead">
+        <h2>Orders assigned to tables</h2>
+        <a class="subtle" href="/admin/restaurant/foodorder/">All orders and payments â†—</a>
+    </div>
+
+    <div style="overflow:auto">
+        <table>
+            <thead>
+                <tr>
+                    <th>Table / booking</th>
+                    <th>Customer order</th>
+                    <th>Total</th>
+                    <th>Payment</th>
+                    <th>Order status</th>
+                    <th>Receipt</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in recent_table_orders %}
+                    <tr>
+                        <td>
+                            <strong>{{ order.reservation.table.name }}</strong><br>
+                            {{ order.reservation.reference }} Â· {{ order.reservation.name }}
+                        </td>
+                        <td>
+                            {% for item in order.items.all %}
+                                {{ item.quantity }} Ã— {{ item.name }}{% if not forloop.last %}<br>{% endif %}
+                            {% endfor %}
+                        </td>
+                        <td>â‚±{{ order.amount|floatformat:2 }}</td>
+                        <td>{{ order.get_payment_status_display }}</td>
+                        <td>{{ order.get_order_status_display }}</td>
+                        <td>
+                            <a href="{% url 'staff_receipt' order_id=order.pk %}">View / print</a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td class="empty" colspan="6">Table orders will appear here.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>

@@ -4,7 +4,7 @@ from django.db import transaction
 from django.utils import timezone
 from django.utils.html import format_html
 from django.urls import reverse
-from .models import ActivityLog, CustomerNotification, DiningTable, Expense, FoodOrder, GalleryImage, MenuCategory, MenuItem, OrderItem, Reservation, SiteContent, InventoryItem, StockAlert, StockIn, StockMovement, Supplier
+from .models import ActivityLog, CustomerNotification, DiningTable, Event, Expense, FoodOrder, GalleryImage, KTVRoom, MenuCategory, MenuItem, OrderItem, Reservation, SiteContent, InventoryItem, StockAlert, StockIn, StockMovement, Supplier
 
 admin.site.site_header = "Casa Sonata Administration"
 admin.site.site_title = "Casa Sonata"
@@ -121,14 +121,22 @@ class MenuItemAdmin(admin.ModelAdmin):
 
 @admin.register(Reservation)
 class ReservationAdmin(admin.ModelAdmin):
-    list_display = ("reference", "name", "table", "reservation_date", "reservation_time", "guests", "status")
-    list_filter = ("status", "reservation_date")
+    list_display = ("reference", "name", "reservation_type", "table", "ktv_room", "reservation_date", "reservation_time", "duration_hours", "ktv_fee", "guests", "status", "cancelled_at")
+    list_filter = ("status", "reservation_date", "ktv_room")
     search_fields = ("name", "email", "phone")
     list_editable = ("status",)
+    readonly_fields = ("cancelled_at",)
+
+    @admin.display(description="Type")
+    def reservation_type(self, obj):
+        return "KTV" if obj.is_ktv else "Dine-in"
 
     def save_model(self, request, obj, form, change):
         old_status = Reservation.objects.filter(pk=obj.pk).values_list("status", flat=True).first() if change else None
         super().save_model(request, obj, form, change)
+        if change and obj.ktv_room_id and obj.status == Reservation.Status.CANCELLED and not obj.cancelled_at:
+            obj.cancelled_at = timezone.now()
+            obj.save(update_fields=("cancelled_at",))
         if change and old_status != obj.status:
             if obj.customer_id:
                 CustomerNotification.objects.create(customer=obj.customer, reservation=obj, kind=CustomerNotification.Kind.RESERVATION, message=f"Your reservation {obj.reference} is now {obj.get_status_display().lower()}.")
@@ -138,6 +146,13 @@ class ReservationAdmin(admin.ModelAdmin):
 class DiningTableAdmin(admin.ModelAdmin):
     list_display = ("name", "seats", "active")
 
+
+@admin.register(KTVRoom)
+class KTVRoomAdmin(admin.ModelAdmin):
+    list_display = ("name", "room_type", "min_capacity", "max_capacity", "hourly_price", "status", "active")
+    list_filter = ("active", "status", "room_type")
+    search_fields = ("name", "room_type")
+
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
     extra = 0
@@ -145,7 +160,7 @@ class OrderItemInline(admin.TabularInline):
 
 @admin.register(FoodOrder)
 class FoodOrderAdmin(admin.ModelAdmin):
-    list_display = ("reservation", "amount", "payment_method", "payment_status", "order_status", "created_at", "print_receipt")
+    list_display = ("reservation", "amount", "total_charged", "payment_method", "payment_status", "order_status", "created_at", "print_receipt")
     list_filter = ("payment_status", "payment_method")
     search_fields = ("reservation__reference", "reservation__name", "gateway_reference")
     readonly_fields = ("payment_status", "paid_at")
@@ -155,6 +170,10 @@ class FoodOrderAdmin(admin.ModelAdmin):
     @admin.display(description="Receipt")
     def print_receipt(self, obj):
         return format_html('<a href="{}">View / print</a>', reverse("staff_receipt", args=[obj.pk]))
+
+    @admin.display(description="Total charged")
+    def total_charged(self, obj):
+        return obj.total_amount
 
     def save_model(self, request, obj, form, change):
         old_status = FoodOrder.objects.filter(pk=obj.pk).values_list("order_status", flat=True).first() if change else None
@@ -177,7 +196,7 @@ class FoodOrderAdmin(admin.ModelAdmin):
             order.reservation.save(update_fields=("status",))
             if order.reservation.customer_id:
                 CustomerNotification.objects.create(customer=order.reservation.customer, reservation=order.reservation, kind=CustomerNotification.Kind.PAYMENT, message=f"Payment for {order.reservation.reference} was accepted. Your reservation is confirmed.")
-            ActivityLog.objects.create(actor=request.user, action="Payment accepted", target=order.reservation.reference, details=f"Amount ₱{order.amount}; GCash reference {order.gateway_reference}")
+            ActivityLog.objects.create(actor=request.user, action="Payment accepted", target=order.reservation.reference, details=f"Amount ₱{order.total_amount}; GCash reference {order.gateway_reference}")
             changed += 1
         self.message_user(request, f"Accepted {changed} pending payment(s).", messages.SUCCESS)
 
@@ -190,7 +209,7 @@ class FoodOrderAdmin(admin.ModelAdmin):
             order.save(update_fields=("payment_status",))
             if order.reservation.customer_id:
                 CustomerNotification.objects.create(customer=order.reservation.customer, reservation=order.reservation, kind=CustomerNotification.Kind.PAYMENT, message=f"Payment for {order.reservation.reference} was not accepted. Please contact Casa Sonata or submit payment again.")
-            ActivityLog.objects.create(actor=request.user, action="Payment rejected", target=order.reservation.reference, details=f"Amount ₱{order.amount}; GCash reference {order.gateway_reference}")
+            ActivityLog.objects.create(actor=request.user, action="Payment rejected", target=order.reservation.reference, details=f"Amount ₱{order.total_amount}; GCash reference {order.gateway_reference}")
             changed += 1
         self.message_user(request, f"Rejected {changed} pending payment(s).", messages.SUCCESS)
 
@@ -198,6 +217,20 @@ class FoodOrderAdmin(admin.ModelAdmin):
 class GalleryImageAdmin(admin.ModelAdmin):
     list_display = ("title", "category", "is_published", "order")
     list_filter = ("category", "is_published")
+
+
+@admin.register(Event)
+class EventAdmin(admin.ModelAdmin):
+    list_display = ("title", "event_date", "start_time", "end_time", "category", "status", "current_status", "featured")
+    list_filter = ("status", "category", "featured", "event_date")
+    search_fields = ("title", "description", "location")
+    prepopulated_fields = {"slug": ("title",)}
+    date_hierarchy = "event_date"
+    list_editable = ("status", "featured")
+
+    @admin.display(description="Current display status")
+    def current_status(self, obj):
+        return obj.display_status
 
 
 @admin.register(SiteContent)

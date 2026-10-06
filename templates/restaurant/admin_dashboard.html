@@ -1,9 +1,1119 @@
-{% load static %}<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Casa Sonata · Administrator</title><link rel="stylesheet" href="{% static 'css/style.css' %}"><style>
-:root{--dark:#202722;--green:#344c3e;--gold:#c89558;--paper:#f4f2ec;--line:#e8e6de;--muted:#858a82}*{box-sizing:border-box}body{margin:0;background:var(--paper);font:14px Arial,sans-serif;color:#222923}.shell{min-height:100vh;display:grid;grid-template-columns:238px 1fr}.side{position:sticky;top:0;height:100vh;background:var(--dark);color:#f7f5ef;padding:28px 18px;display:flex;flex-direction:column}.brand{font:25px Georgia,serif;padding:0 12px 4px}.caption{padding:0 12px 30px;color:#a5afa5;font-size:9px;text-transform:uppercase;letter-spacing:.22em}.section{font-size:9px;color:#a5afa5;letter-spacing:.2em;padding:13px 12px 8px}.nav{display:block;padding:10px 12px;border-radius:6px;margin:2px 0;text-decoration:none;color:#e0e3dc;font-size:12px}.nav:hover,.nav.on{background:#ffffff17;color:white}.nav i{font-style:normal;display:inline-block;width:23px;color:#d0ad7a}.sidebottom{margin-top:auto;border-top:1px solid #ffffff20;padding:16px 12px;color:#cbd1ca;font-size:11px}.sidebottom a{color:#dfbf92}.main{padding:28px 34px 54px;max-width:1600px;width:100%;margin:auto;min-width:0}.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}.kicker{color:#687962;font-size:10px;text-transform:uppercase;letter-spacing:.2em}.title{font:34px Georgia,serif;margin:7px 0 0}.adminbadge{font-size:11px;border:1px solid #ddd9cc;background:white;border-radius:99px;padding:9px 13px}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.metric{background:white;border:1px solid var(--line);border-radius:9px;padding:17px 19px}.metriclabel{font-size:11px;color:var(--muted)}.metricvalue{font:25px Georgia,serif;margin-top:9px}.metricnote{color:#75846e;font-size:10px;margin-top:6px}.periods{margin-top:14px;background:white;border:1px solid var(--line);border-radius:9px;overflow:auto}.periods table{width:100%;border-collapse:collapse;min-width:700px}.periods th,.periods td{text-align:right;padding:13px 16px;border-bottom:1px solid #f0efe9;font-size:12px}.periods th{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.09em}.periods th:first-child,.periods td:first-child{text-align:left}.periods tr:last-child td{border-bottom:0}.net{color:#3d6949;font-weight:bold}.lower{display:grid;grid-template-columns:1.3fr 1fr;gap:14px;margin-top:14px}.panel{min-width:0;background:white;border:1px solid var(--line);border-radius:9px;padding:19px}.panelhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}.panel h2{font:20px Georgia,serif;margin:0}.subtle{font-size:10px;color:var(--muted)}.bars{height:175px;display:flex;align-items:flex-end;gap:12px;border-bottom:1px solid var(--line);padding:10px 3px 0}.day{flex:1;display:flex;align-items:flex-end;justify-content:center;height:100%;gap:3px;position:relative;padding-bottom:23px}.bar{width:35%;min-width:7px;border-radius:4px 4px 0 0;background:#769078;align-self:flex-end}.bar.cost{background:#d0a66c}.daylabel{position:absolute;bottom:4px;color:var(--muted);font-size:10px}.legend{display:flex;gap:14px;font-size:10px;color:var(--muted)}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#769078;margin-right:5px}.dot.cost{background:#d0a66c}.links{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.linkcard{border:1px solid var(--line);border-radius:7px;padding:12px;text-decoration:none;color:#29352d;font-size:12px}.linkcard:hover{border-color:#bd9a68;background:#fcfaf4}.linkcard span{display:block;color:var(--muted);font-size:10px;margin-top:5px}.pill{border-radius:99px;background:#f5eeda;color:#94713d;padding:5px 9px;font-size:10px}.pill.red{background:#f8e9e6;color:#a54c3f}.lowlist{padding:0;margin:10px 0 0;list-style:none}.lowlist li{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f0efe9;font-size:12px}.lowlist li:last-child{border:0}.activity{margin-top:14px}.activity table{width:100%;border-collapse:collapse}.activity th{text-align:left;color:var(--muted);font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:9px 7px;border-bottom:1px solid var(--line)}.activity td{padding:10px 7px;border-bottom:1px solid #f1f0eb;font-size:11px;vertical-align:top}.activity tr:last-child td{border:0}.empty{text-align:center;padding:20px;color:var(--muted);font-size:12px}@media(max-width:1050px){.metrics{grid-template-columns:repeat(2,1fr)}.lower{grid-template-columns:1fr}.main{padding:24px 20px}}@media(max-width:650px){.shell{display:block}.side{height:auto;position:static;padding:12px 16px;display:block}.brand{display:inline-block;font-size:21px}.caption{display:inline-block;padding:0 0 0 8px}.section,.nav,.sidebottom{display:none}.main{padding:20px 12px}.title{font-size:27px}.metrics{gap:8px}.metric{padding:13px}.metricvalue{font-size:21px}.panel{padding:14px}}
-</style><link rel="stylesheet" href="{% static 'css/admin_dashboard.css' %}"></head><body><div class="shell">{% include "restaurant/admin_sidebar.html" %}<main class="main"><header class="top"><div><div class="kicker">{{ today|date:'l · F j, Y' }}</div><h1 class="title">Administrator overview</h1></div><span class="adminbadge">Superuser access</span></header>
-<section class="metrics"><article class="metric"><div class="metriclabel">Accepted payments today</div><div class="metricvalue">{{ paid_today }}</div><div class="metricnote">₱{{ daily_income|floatformat:2 }} verified income</div></article><article class="metric"><div class="metriclabel">Orders today</div><div class="metricvalue">{{ orders_today }}</div><div class="metricnote">{{ pending_payments }} payments awaiting review</div></article><article class="metric"><div class="metriclabel">Reservations today</div><div class="metricvalue">{{ reservations_today }}</div><div class="metricnote">{{ staff_count }} active staff accounts</div></article><article class="metric"><div class="metriclabel">Inventory alerts</div><div class="metricvalue">{{ low_inventory.count }}</div><div class="metricnote">Low or out of stock</div></article></section>
-<section class="periods" id="sales-income"><table><thead><tr><th>Performance</th><th>Income</th><th>Expenses</th><th>Estimated net income</th></tr></thead><tbody><tr><td>Today</td><td>₱{{ daily_income|floatformat:2 }}</td><td>₱{{ daily_expense|floatformat:2 }}</td><td class="net">₱{{ daily_net|floatformat:2 }}</td></tr><tr><td>This week</td><td>₱{{ weekly_income|floatformat:2 }}</td><td>₱{{ weekly_expense|floatformat:2 }}</td><td class="net">₱{{ weekly_net|floatformat:2 }}</td></tr><tr><td>This month</td><td>₱{{ monthly_income|floatformat:2 }}</td><td>₱{{ monthly_expense|floatformat:2 }}</td><td class="net">₱{{ monthly_net|floatformat:2 }}</td></tr><tr><td>Year to date</td><td>₱{{ yearly_income|floatformat:2 }}</td><td>₱{{ yearly_expense|floatformat:2 }}</td><td class="net">₱{{ yearly_net|floatformat:2 }}</td></tr></tbody></table></section>
-<div class="lower"><section class="panel"><div class="panelhead"><h2>Income & expenses</h2><div class="legend"><span><i class="dot"></i>Income</span><span><i class="dot cost"></i>Expenses</span></div></div><div class="bars">{% for row in week_chart %}<div class="day"><div class="bar" title="Income ₱{{ row.income|floatformat:2 }}" style="height:{{ row.income_height }}%"></div><div class="bar cost" title="Expenses ₱{{ row.expenses|floatformat:2 }}" style="height:{{ row.expense_height }}%"></div><span class="daylabel">{{ row.label }}</span></div>{% endfor %}</div></section><section class="panel"><div class="panelhead"><h2>Management</h2><span class="subtle">Administrator only</span></div><div class="links"><a class="linkcard" href="/admin/auth/user/">Staff & permissions<span>Create, deactivate, assign roles</span></a><a class="linkcard" href="/admin/restaurant/sitecontent/">Website content<span>Home, about, contact</span></a><a class="linkcard" href="/admin/restaurant/menuitem/">Menu & gallery<span>Public content</span></a><a class="linkcard" href="/admin/restaurant/supplier/">Suppliers<span>Contacts and purchasing</span></a><a class="linkcard" href="/admin/restaurant/expense/">Expenses<span>Record operating costs</span></a><a class="linkcard" href="/admin/restaurant/stockmovement/">Inventory history<span>Read-only movement audit</span></a></div></section>
-<section class="panel"><div class="panelhead"><h2>Inventory attention</h2><a class="subtle" href="/admin/restaurant/inventoryitem/">Manage inventory ↗</a></div>{% if low_inventory %}<ul class="lowlist">{% for item in low_inventory %}<li><span>{{ item.name }} <span class="subtle">· threshold {{ item.low_stock_threshold }} {{ item.unit }}</span></span><span class="pill {% if item.quantity <= 0 %}red{% endif %}">{{ item.quantity }} {{ item.unit }}</span></li>{% endfor %}</ul>{% else %}<p class="empty">All inventory is above its alert threshold.</p>{% endif %}</section><section class="panel"><div class="panelhead"><h2>Quick counts</h2><span class="subtle">All time</span></div><ul class="lowlist"><li><span>Accepted payments</span><strong>{{ paid_count }}</strong></li><li><span>Suppliers</span><strong>{{ supplier_count }}</strong></li><li><span>Tracked inventory items</span><strong>{{ inventory_count }}</strong></li><li><span>Customer notifications</span><strong>{{ notification_count }}</strong></li></ul></section></div>
-<section class="panel activity" id="activity"><div class="panelhead"><h2>Staff activity log</h2><a class="subtle" href="/admin/restaurant/activitylog/">Full audit log ↗</a></div><div style="overflow:auto"><table><thead><tr><th>When</th><th>Staff member</th><th>Action</th><th>Record</th><th>Details</th></tr></thead><tbody>{% for event in recent_activity %}<tr><td>{{ event.created_at|date:'M j, Y · g:i A' }}</td><td>{{ event.actor.username|default:'Former account' }}</td><td>{{ event.action }}</td><td>{{ event.target }}</td><td>{{ event.details|default:'—' }}</td></tr>{% empty %}<tr><td class="empty" colspan="5">Staff actions will be recorded here.</td></tr>{% endfor %}</tbody></table></div></section>
-{% include "restaurant/admin_analytics.html" %}{% include "restaurant/admin_tables.html" %}{% include "restaurant/admin_monthly_orders.html" %}</main></div></body></html>
+{% load static %}
+
+<!doctype html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>Casa Sonata · Administrator</title>
+
+    <link
+        rel="stylesheet"
+        href="{% static 'css/style.css' %}"
+    >
+
+    <style>
+
+        :root {
+            --dark: #202722;
+            --green: #344c3e;
+            --gold: #c89558;
+            --paper: #f4f2ec;
+            --line: #e8e6de;
+            --muted: #858a82;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: var(--paper);
+            font: 14px Arial, sans-serif;
+            color: #222923;
+        }
+
+        .shell {
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: 238px 1fr;
+        }
+
+        /* =====================================================
+           SIDEBAR
+        ====================================================== */
+
+        .side {
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            background: var(--dark);
+            color: #f7f5ef;
+            padding: 28px 18px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand {
+            font: 25px Georgia, serif;
+            padding: 0 12px 4px;
+        }
+
+        .caption {
+            padding: 0 12px 30px;
+            color: #a5afa5;
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: .22em;
+        }
+
+        .section {
+            font-size: 9px;
+            color: #a5afa5;
+            letter-spacing: .2em;
+            padding: 13px 12px 8px;
+        }
+
+        .nav {
+            display: block;
+            padding: 10px 12px;
+            border-radius: 6px;
+            margin: 2px 0;
+            text-decoration: none;
+            color: #e0e3dc;
+            font-size: 12px;
+        }
+
+        .nav:hover,
+        .nav.on {
+            background: #ffffff17;
+            color: white;
+        }
+
+        .nav i {
+            font-style: normal;
+            display: inline-block;
+            width: 23px;
+            color: #d0ad7a;
+        }
+
+        .sidebottom {
+            margin-top: auto;
+            border-top: 1px solid #ffffff20;
+            padding: 16px 12px;
+            color: #cbd1ca;
+            font-size: 11px;
+        }
+
+        .sidebottom a {
+            color: #dfbf92;
+        }
+
+
+        /* =====================================================
+           MAIN CONTENT
+        ====================================================== */
+
+        .main {
+            padding: 28px 34px 54px;
+            max-width: 1600px;
+            width: 100%;
+            margin: auto;
+            min-width: 0;
+        }
+
+
+        /* =====================================================
+           HEADER
+        ====================================================== */
+
+        .top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 22px;
+        }
+
+        .kicker {
+            color: #687962;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .2em;
+        }
+
+        .title {
+            font: 34px Georgia, serif;
+            margin: 7px 0 0;
+        }
+
+        .adminbadge {
+            font-size: 11px;
+            border: 1px solid #ddd9cc;
+            background: white;
+            border-radius: 99px;
+            padding: 9px 13px;
+        }
+
+
+        /* =====================================================
+           METRICS
+        ====================================================== */
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        .metric {
+            background: white;
+            border: 1px solid var(--line);
+            border-radius: 9px;
+            padding: 17px 19px;
+        }
+
+        .metriclabel {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .metricvalue {
+            font: 25px Georgia, serif;
+            margin-top: 9px;
+        }
+
+        .metricnote {
+            color: #75846e;
+            font-size: 10px;
+            margin-top: 6px;
+        }
+
+
+        /* =====================================================
+           PERFORMANCE TABLE
+        ====================================================== */
+
+        .periods {
+            margin-top: 14px;
+            background: white;
+            border: 1px solid var(--line);
+            border-radius: 9px;
+            overflow: auto;
+        }
+
+        .periods table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 700px;
+        }
+
+        .periods th,
+        .periods td {
+            text-align: right;
+            padding: 13px 16px;
+            border-bottom: 1px solid #f0efe9;
+            font-size: 12px;
+        }
+
+        .periods th {
+            font-size: 10px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .09em;
+        }
+
+        .periods th:first-child,
+        .periods td:first-child {
+            text-align: left;
+        }
+
+        .periods tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .net {
+            color: #3d6949;
+            font-weight: bold;
+        }
+
+
+        /* =====================================================
+           LOWER PANELS
+        ====================================================== */
+
+        .lower {
+            display: grid;
+            grid-template-columns: 1.3fr 1fr;
+            gap: 14px;
+            margin-top: 14px;
+        }
+
+        .panel {
+            min-width: 0;
+            background: white;
+            border: 1px solid var(--line);
+            border-radius: 9px;
+            padding: 19px;
+        }
+
+        .panelhead {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+
+        .panel h2 {
+            font: 20px Georgia, serif;
+            margin: 0;
+        }
+
+        .subtle {
+            font-size: 10px;
+            color: var(--muted);
+        }
+
+
+        /* =====================================================
+           INCOME CHART
+        ====================================================== */
+
+        .bars {
+            height: 175px;
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+            border-bottom: 1px solid var(--line);
+            padding: 10px 3px 0;
+        }
+
+        .day {
+            flex: 1;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            height: 100%;
+            gap: 3px;
+            position: relative;
+            padding-bottom: 23px;
+        }
+
+        .bar {
+            width: 35%;
+            min-width: 7px;
+            border-radius: 4px 4px 0 0;
+            background: #769078;
+            align-self: flex-end;
+        }
+
+        .bar.cost {
+            background: #d0a66c;
+        }
+
+        .daylabel {
+            position: absolute;
+            bottom: 4px;
+            color: var(--muted);
+            font-size: 10px;
+        }
+
+        .legend {
+            display: flex;
+            gap: 14px;
+            font-size: 10px;
+            color: var(--muted);
+        }
+
+        .dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #769078;
+            margin-right: 5px;
+        }
+
+        .dot.cost {
+            background: #d0a66c;
+        }
+
+
+        /* =====================================================
+           MANAGEMENT LINKS
+        ====================================================== */
+
+        .links {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .linkcard {
+            border: 1px solid var(--line);
+            border-radius: 7px;
+            padding: 12px;
+            text-decoration: none;
+            color: #29352d;
+            font-size: 12px;
+        }
+
+        .linkcard:hover {
+            border-color: #bd9a68;
+            background: #fcfaf4;
+        }
+
+        .linkcard span {
+            display: block;
+            color: var(--muted);
+            font-size: 10px;
+            margin-top: 5px;
+        }
+
+
+        /* =====================================================
+           INVENTORY
+        ====================================================== */
+
+        .pill {
+            border-radius: 99px;
+            background: #f5eeda;
+            color: #94713d;
+            padding: 5px 9px;
+            font-size: 10px;
+        }
+
+        .pill.red {
+            background: #f8e9e6;
+            color: #a54c3f;
+        }
+
+        .lowlist {
+            padding: 0;
+            margin: 10px 0 0;
+            list-style: none;
+        }
+
+        .lowlist li {
+            display: flex;
+            justify-content: space-between;
+            padding: 9px 0;
+            border-bottom: 1px solid #f0efe9;
+            font-size: 12px;
+        }
+
+        .lowlist li:last-child {
+            border: 0;
+        }
+
+
+        /* =====================================================
+           ACTIVITY LOG
+        ====================================================== */
+
+        .activity {
+            margin-top: 14px;
+        }
+
+        .activity table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .activity th {
+            text-align: left;
+            color: var(--muted);
+            font-size: 9px;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            padding: 9px 7px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .activity td {
+            padding: 10px 7px;
+            border-bottom: 1px solid #f1f0eb;
+            font-size: 11px;
+            vertical-align: top;
+        }
+
+        .activity tr:last-child td {
+            border: 0;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 20px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+
+        /* =====================================================
+           RESPONSIVE DESIGN
+        ====================================================== */
+
+        @media (max-width: 1050px) {
+
+            .metrics {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .lower {
+                grid-template-columns: 1fr;
+            }
+
+            .main {
+                padding: 24px 20px;
+            }
+        }
+
+
+        @media (max-width: 650px) {
+
+            .shell {
+                display: block;
+            }
+
+            .side {
+                height: auto;
+                position: static;
+                padding: 12px 16px;
+                display: block;
+            }
+
+            .brand {
+                display: inline-block;
+                font-size: 21px;
+            }
+
+            .caption {
+                display: inline-block;
+                padding: 0 0 0 8px;
+            }
+
+            .section,
+            .nav,
+            .sidebottom {
+                display: none;
+            }
+
+            .main {
+                padding: 20px 12px;
+            }
+
+            .title {
+                font-size: 27px;
+            }
+
+            .metrics {
+                gap: 8px;
+            }
+
+            .metric {
+                padding: 13px;
+            }
+
+            .metricvalue {
+                font-size: 21px;
+            }
+
+            .panel {
+                padding: 14px;
+            }
+        }
+
+    </style>
+
+    <link
+        rel="stylesheet"
+        href="{% static 'css/admin_dashboard.css' %}"
+    >
+
+</head>
+
+
+<body>
+
+<div class="shell">
+
+    <!-- =====================================================
+         ADMIN SIDEBAR
+    ====================================================== -->
+
+    {% include "restaurant/admin_sidebar.html" %}
+
+
+    <!-- =====================================================
+         MAIN DASHBOARD
+    ====================================================== -->
+
+    <main class="main">
+
+
+        <!-- =================================================
+             HEADER
+        ================================================== -->
+
+        <header class="top">
+
+            <div>
+
+                <div class="kicker">
+                    {{ today|date:'l · F j, Y' }}
+                </div>
+
+                <h1 class="title">
+                    Administrator overview
+                </h1>
+
+            </div>
+
+            <span class="adminbadge">
+                Superuser access
+            </span>
+
+        </header>
+
+
+        <!-- =================================================
+             DASHBOARD METRICS
+        ================================================== -->
+
+        <section class="metrics">
+
+            <article class="metric">
+
+                <div class="metriclabel">
+                    Accepted payments today
+                </div>
+
+                <div class="metricvalue">
+                    {{ paid_today }}
+                </div>
+
+                <div class="metricnote">
+                    ₱{{ daily_income|floatformat:2 }} verified income
+                </div>
+
+            </article>
+
+
+            <article class="metric">
+
+                <div class="metriclabel">
+                    Orders today
+                </div>
+
+                <div class="metricvalue">
+                    {{ orders_today }}
+                </div>
+
+                <div class="metricnote">
+                    {{ pending_payments }} payments awaiting review
+                </div>
+
+            </article>
+
+
+            <article class="metric">
+
+                <div class="metriclabel">
+                    Reservations today
+                </div>
+
+                <div class="metricvalue">
+                    {{ reservations_today }}
+                </div>
+
+                <div class="metricnote">
+                    {{ staff_count }} active staff accounts
+                </div>
+
+            </article>
+
+
+            <article class="metric">
+
+                <div class="metriclabel">
+                    Inventory alerts
+                </div>
+
+                <div class="metricvalue">
+                    {{ low_inventory.count }}
+                </div>
+
+                <div class="metricnote">
+                    Low or out of stock
+                </div>
+
+            </article>
+
+        </section>
+
+
+        <!-- =================================================
+             SALES & INCOME
+        ================================================== -->
+
+        <section
+            class="periods"
+            id="sales-income"
+        >
+
+            <table>
+
+                <thead>
+
+                    <tr>
+                        <th>Performance</th>
+                        <th>Income</th>
+                        <th>Expenses</th>
+                        <th>Estimated net income</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    <tr>
+                        <td>Today</td>
+                        <td>₱{{ daily_income|floatformat:2 }}</td>
+                        <td>₱{{ daily_expense|floatformat:2 }}</td>
+                        <td class="net">
+                            ₱{{ daily_net|floatformat:2 }}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>This week</td>
+                        <td>₱{{ weekly_income|floatformat:2 }}</td>
+                        <td>₱{{ weekly_expense|floatformat:2 }}</td>
+                        <td class="net">
+                            ₱{{ weekly_net|floatformat:2 }}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>This month</td>
+                        <td>₱{{ monthly_income|floatformat:2 }}</td>
+                        <td>₱{{ monthly_expense|floatformat:2 }}</td>
+                        <td class="net">
+                            ₱{{ monthly_net|floatformat:2 }}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>Year to date</td>
+                        <td>₱{{ yearly_income|floatformat:2 }}</td>
+                        <td>₱{{ yearly_expense|floatformat:2 }}</td>
+                        <td class="net">
+                            ₱{{ yearly_net|floatformat:2 }}
+                        </td>
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </section>
+
+
+        <!-- =================================================
+             LOWER DASHBOARD
+        ================================================== -->
+
+        <div class="lower">
+
+
+            <!-- =================================================
+                 INCOME & EXPENSES
+            ================================================== -->
+
+            <section class="panel">
+
+                <div class="panelhead">
+
+                    <h2>
+                        Income & expenses
+                    </h2>
+
+                    <div class="legend">
+
+                        <span>
+                            <i class="dot"></i>
+                            Income
+                        </span>
+
+                        <span>
+                            <i class="dot cost"></i>
+                            Expenses
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="bars">
+
+                    {% for row in week_chart %}
+
+                    <div class="day">
+
+                        <div
+                            class="bar"
+                            title="Income ₱{{ row.income|floatformat:2 }}"
+                            style="height:{{ row.income_height }}%"
+                        ></div>
+
+                        <div
+                            class="bar cost"
+                            title="Expenses ₱{{ row.expenses|floatformat:2 }}"
+                            style="height:{{ row.expense_height }}%"
+                        ></div>
+
+                        <span class="daylabel">
+                            {{ row.label }}
+                        </span>
+
+                    </div>
+
+                    {% endfor %}
+
+                </div>
+
+            </section>
+
+
+            <!-- =================================================
+                 MANAGEMENT
+            ================================================== -->
+
+            <section class="panel">
+
+                <div class="panelhead">
+
+                    <h2>
+                        Management
+                    </h2>
+
+                    <span class="subtle">
+                        Administrator only
+                    </span>
+
+                </div>
+
+
+                <div class="links">
+
+                    <a
+                        class="linkcard"
+                        href="/admin/auth/user/"
+                    >
+                        Staff & permissions
+
+                        <span>
+                            Create, deactivate, assign roles
+                        </span>
+                    </a>
+
+
+                    <a
+                        class="linkcard"
+                        href="/admin/restaurant/sitecontent/"
+                    >
+                        Website content
+
+                        <span>
+                            Home, about, contact
+                        </span>
+                    </a>
+
+
+                    <a
+                        class="linkcard"
+                        href="/admin/restaurant/menuitem/"
+                    >
+                        Menu & gallery
+
+                        <span>
+                            Public content
+                        </span>
+                    </a>
+
+
+                    <a
+                        class="linkcard"
+                        href="/admin/restaurant/supplier/"
+                    >
+                        Suppliers
+
+                        <span>
+                            Contacts and purchasing
+                        </span>
+                    </a>
+
+
+                    <a
+                        class="linkcard"
+                        href="/admin/restaurant/expense/"
+                    >
+                        Expenses
+
+                        <span>
+                            Record operating costs
+                        </span>
+                    </a>
+
+
+                    <a
+                        class="linkcard"
+                        href="/admin/restaurant/stockmovement/"
+                    >
+                        Inventory history
+
+                        <span>
+                            Read-only movement audit
+                        </span>
+                    </a>
+
+                </div>
+
+            </section>
+
+
+            <!-- =================================================
+                 INVENTORY ATTENTION
+            ================================================== -->
+
+            <section class="panel">
+
+                <div class="panelhead">
+
+                    <h2>
+                        Inventory attention
+                    </h2>
+
+                    <a
+                        class="subtle"
+                        href="/admin/restaurant/inventoryitem/"
+                    >
+                        Manage inventory ↗
+                    </a>
+
+                </div>
+
+
+                {% if low_inventory %}
+
+                <ul class="lowlist">
+
+                    {% for item in low_inventory %}
+
+                    <li>
+
+                        <span>
+
+                            {{ item.name }}
+
+                            <span class="subtle">
+                                · threshold
+                                {{ item.low_stock_threshold }}
+                                {{ item.unit }}
+                            </span>
+
+                        </span>
+
+
+                        <span
+                            class="pill {% if item.quantity <= 0 %}red{% endif %}"
+                        >
+                            {{ item.quantity }}
+                            {{ item.unit }}
+                        </span>
+
+                    </li>
+
+                    {% endfor %}
+
+                </ul>
+
+                {% else %}
+
+                <p class="empty">
+                    All inventory is above its alert threshold.
+                </p>
+
+                {% endif %}
+
+            </section>
+
+
+            <!-- =================================================
+                 QUICK COUNTS
+            ================================================== -->
+
+            <section class="panel">
+
+                <div class="panelhead">
+
+                    <h2>
+                        Quick counts
+                    </h2>
+
+                    <span class="subtle">
+                        All time
+                    </span>
+
+                </div>
+
+
+                <ul class="lowlist">
+
+                    <li>
+                        <span>Accepted payments</span>
+                        <strong>{{ paid_count }}</strong>
+                    </li>
+
+                    <li>
+                        <span>Suppliers</span>
+                        <strong>{{ supplier_count }}</strong>
+                    </li>
+
+                    <li>
+                        <span>Tracked inventory items</span>
+                        <strong>{{ inventory_count }}</strong>
+                    </li>
+
+                    <li>
+                        <span>Customer notifications</span>
+                        <strong>{{ notification_count }}</strong>
+                    </li>
+
+                </ul>
+
+            </section>
+
+        </div>
+
+
+        <!-- =================================================
+             STAFF ACTIVITY LOG
+        ================================================== -->
+
+        <section
+            class="panel activity"
+            id="activity"
+        >
+
+            <div class="panelhead">
+
+                <h2>
+                    Staff activity log
+                </h2>
+
+                <a
+                    class="subtle"
+                    href="/admin/restaurant/activitylog/"
+                >
+                    Full audit log ↗
+                </a>
+
+            </div>
+
+
+            <div style="overflow:auto">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+                            <th>When</th>
+                            <th>Staff member</th>
+                            <th>Action</th>
+                            <th>Record</th>
+                            <th>Details</th>
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        {% for event in recent_activity %}
+
+                        <tr>
+
+                            <td>
+                                {{ event.created_at|date:'M j, Y · g:i A' }}
+                            </td>
+
+                            <td>
+                                {{ event.actor.username|default:'Former account' }}
+                            </td>
+
+                            <td>
+                                {{ event.action }}
+                            </td>
+
+                            <td>
+                                {{ event.target }}
+                            </td>
+
+                            <td>
+                                {{ event.details|default:'—' }}
+                            </td>
+
+                        </tr>
+
+                        {% empty %}
+
+                        <tr>
+
+                            <td
+                                class="empty"
+                                colspan="5"
+                            >
+                                Staff actions will be recorded here.
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             ADDITIONAL DASHBOARD SECTIONS
+        ================================================== -->
+
+        {% include "restaurant/admin_analytics.html" %}
+
+        {% include "restaurant/admin_tables.html" %}
+
+        {% include "restaurant/admin_monthly_orders.html" %}
+
+
+    </main>
+
+</div>
+
+</body>
+
+</html>

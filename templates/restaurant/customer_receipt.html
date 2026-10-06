@@ -1,1 +1,255 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Casa Sonata receipt · {{ order.reservation.reference }}</title><style>body{font:14px Arial,sans-serif;color:#222;margin:0;padding:30px}.receipt{max-width:520px;margin:30px auto;border:1px solid #ddd;padding:30px}.brand{text-align:center;font:30px Georgia,serif}.muted{color:#777;font-size:12px}.line{border-top:1px dashed #aaa;margin:18px 0}.row{display:flex;justify-content:space-between;padding:7px 0}.total{font-weight:bold;font-size:18px}.actions{max-width:520px;margin:auto;display:flex;justify-content:space-between}.actions a,.actions button{border:1px solid #ccc;background:white;padding:10px 15px;color:#333;text-decoration:none;cursor:pointer}@media print{body{padding:0}.receipt{margin:0 auto;border:0}.actions{display:none}}</style></head><body><div class="actions"><a href="{% url 'account_dashboard' %}">← Back to account</a><button onclick="window.print()">Print receipt</button></div><main class="receipt"><div class="brand">Casa Sonata</div><p class="muted" style="text-align:center">DIGITAL RECEIPT · PAYMENT ACCEPTED</p><div class="line"></div><div class="row"><span>Reservation</span><strong>{{ order.reservation.reference }}</strong></div><div class="row"><span>Guest</span><span>{{ order.reservation.name }}</span></div><div class="row"><span>Date paid</span><span>{{ order.paid_at|date:'F j, Y · g:i A' }}</span></div><div class="row"><span>Payment method</span><span>{{ order.payment_method|upper }}</span></div><div class="row"><span>Payment reference</span><span>{{ order.gateway_reference|default:'—' }}</span></div><div class="line"></div>{% for item in order.items.all %}<div class="row"><span>{{ item.quantity }} × {{ item.name }}</span><span>₱{{ item.line_total|floatformat:2 }}</span></div>{% endfor %}<div class="line"></div><div class="row total"><span>Total paid</span><span>₱{{ order.amount|floatformat:2 }}</span></div><p class="muted" style="text-align:center;margin-top:25px">Thank you for dining with us.</p></main></body></html>
+<!doctype html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>
+        Casa Sonata receipt · {{ order.reservation.reference }}
+    </title>
+
+
+    <style>
+
+        body {
+            font: 14px Arial, sans-serif;
+            color: #222;
+            margin: 0;
+            padding: 30px;
+        }
+
+        .receipt {
+            max-width: 520px;
+            margin: 30px auto;
+            border: 1px solid #ddd;
+            padding: 30px;
+        }
+
+        .brand {
+            text-align: center;
+            font: 30px Georgia, serif;
+        }
+
+        .muted {
+            color: #777;
+            font-size: 12px;
+        }
+
+        .line {
+            border-top: 1px dashed #aaa;
+            margin: 18px 0;
+        }
+
+        .row {
+            display: flex;
+            justify-content: space-between;
+            padding: 7px 0;
+        }
+
+        .total {
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .actions {
+            max-width: 520px;
+            margin: auto;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .actions a,
+        .actions button {
+            border: 1px solid #ccc;
+            background: white;
+            padding: 10px 15px;
+            color: #333;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+
+        @media print {
+
+            body {
+                padding: 0;
+            }
+
+            .receipt {
+                margin: 0 auto;
+                border: 0;
+            }
+
+            .actions {
+                display: none;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+    <div class="actions">
+
+        <a href="{% url 'account_dashboard' %}">
+            ← Back to account
+        </a>
+
+        <button onclick="window.print()">
+            Print receipt
+        </button>
+
+    </div>
+
+
+    <main class="receipt">
+
+        <div class="brand">
+            Casa Sonata
+        </div>
+
+
+        <p
+            class="muted"
+            style="text-align: center"
+        >
+            DIGITAL RECEIPT · PAYMENT ACCEPTED
+        </p>
+
+
+        <div class="line"></div>
+
+
+        <div class="row">
+
+            <span>
+                Reservation
+            </span>
+
+            <strong>
+                {{ order.reservation.reference }}
+            </strong>
+
+        </div>
+
+
+        <div class="row">
+
+            <span>
+                Guest
+            </span>
+
+            <span>
+                {{ order.reservation.name }}
+            </span>
+
+        </div>
+
+
+        <div class="row">
+
+            <span>
+                Date paid
+            </span>
+
+            <span>
+                {{ order.paid_at|date:'F j, Y · g:i A' }}
+            </span>
+
+        </div>
+
+
+        <div class="row">
+
+            <span>
+                Payment method
+            </span>
+
+            <span>
+                {{ order.payment_method|upper }}
+            </span>
+
+        </div>
+
+
+        <div class="row">
+
+            <span>
+                Payment reference
+            </span>
+
+            <span>
+                {{ order.gateway_reference|default:'—' }}
+            </span>
+
+        </div>
+
+
+        <div class="line"></div>
+
+
+        {% if order.reservation.is_ktv %}
+        <div class="row">
+            <span>KTV room: {{ order.reservation.ktv_room }} ({{ order.reservation.duration_hours }} hours)</span>
+            <span>₱{{ order.reservation.ktv_fee|floatformat:2 }}</span>
+        </div>
+        {% endif %}
+
+        {% for item in order.items.all %}
+
+        <div class="row">
+
+            <span>
+                {{ item.quantity }} × {{ item.name }}
+            </span>
+
+            <span>
+                ₱{{ item.line_total|floatformat:2 }}
+            </span>
+
+        </div>
+
+        {% endfor %}
+
+
+        <div class="line"></div>
+
+
+        <div class="row total">
+
+            <span>
+                Total paid
+            </span>
+
+            <span>
+                ₱{{ order.total_amount|floatformat:2 }}
+            </span>
+
+        </div>
+
+
+        <p
+            class="muted"
+            style="text-align: center; margin-top: 25px"
+        >
+            Thank you for dining with us.
+        </p>
+
+    </main>
+
+
+</body>
+
+</html>

@@ -1,38 +1,124 @@
 {% extends 'restaurant/base.html' %}
 
-{% block title %}Menu | Casa Sonata{% endblock %}
+{% block title %}
+    Menu | Casa Sonata
+{% endblock %}
+
 
 {% block content %}
+
 <section class="bg-ink px-6 pb-20 pt-40 text-center text-white">
-  <p class="text-xs font-bold uppercase tracking-[.3em] text-gold">{{ site_content.restaurant_name|default:'Casa Sonata' }}</p>
-  <h1 class="mt-4 font-serif text-6xl">Our Menu</h1>
-  <p class="mx-auto mt-5 max-w-xl leading-7 text-white/65">Good food, made for sharing.</p>
+
+    <p
+        class="text-xs font-bold uppercase tracking-[.3em] text-gold"
+    >
+        {{ site_content.restaurant_name|default:'Casa Sonata' }}
+    </p>
+
+    <h1 class="mt-4 font-serif text-6xl">
+        Our Menu
+    </h1>
+
+    <p
+        class="mx-auto mt-5 max-w-xl leading-7 text-white/65"
+    >
+        Good food, made for sharing.
+    </p>
+
 </section>
 
-<section class="mx-auto max-w-6xl space-y-16 px-6 py-20">
-  {% for category in categories %}
-    {% with available_items=category.items.all %}
-      <section>
-        <h2 class="border-b border-gold pb-4 font-serif text-4xl">{{ category.name }}</h2>
-        <div class="mt-6 grid gap-6 sm:grid-cols-2">
-          {% for item in available_items %}
-            {% if item.available %}
-              <article class="flex gap-5 border-b border-ink/10 pb-6">
-                {% if item.image %}<img class="h-24 w-24 shrink-0 object-cover" src="{{ item.image.url }}" alt="{{ item.name }}">{% endif %}
-                <div class="flex-1">
-                  <div class="flex justify-between gap-4"><h3 class="font-serif text-xl">{{ item.name }}</h3><span class="whitespace-nowrap text-gold">₱{{ item.price }}</span></div>
-                  <p class="mt-2 text-sm leading-6 text-ink/65">{{ item.description }}</p>
-                </div>
-              </article>
-            {% endif %}
-          {% empty %}
-            <p class="text-ink/60">Menu items will be added soon.</p>
-          {% endfor %}
-        </div>
-      </section>
-    {% endwith %}
-  {% empty %}
-    <p class="text-center text-ink/60">Our menu is being prepared. Please check back soon.</p>
-  {% endfor %}
+
+<section
+    class="mx-auto max-w-6xl space-y-16 px-6 py-20"
+>
+
+    {% for category in categories %}
+
+        {% with available_items=category.items.all %}
+
+        <section>
+
+            <h2
+                class="border-b border-gold pb-4 font-serif text-4xl"
+            >
+                {{ category.name }}
+            </h2>
+
+            <div
+                class="mt-6 grid gap-6 sm:grid-cols-2"
+            >
+
+                {% for item in available_items %}
+
+                    {% if item.available %}
+
+                    <article
+                        class="flex gap-5 border-b border-ink/10 pb-6"
+                    >
+
+                        {% if item.image %}
+
+                        <img
+                            class="h-24 w-24 shrink-0 object-cover"
+                            src="{{ item.image.url }}"
+                            alt="{{ item.name }}"
+                        >
+
+                        {% endif %}
+
+
+                        <div class="flex-1">
+
+                            <div
+                                class="flex justify-between gap-4"
+                            >
+
+                                <h3 class="font-serif text-xl">
+                                    {{ item.name }}
+                                </h3>
+
+                                <span
+                                    class="whitespace-nowrap text-gold"
+                                >
+                                    ₱{{ item.price }}
+                                </span>
+
+                            </div>
+
+                            <p
+                                class="mt-2 text-sm leading-6 text-ink/65"
+                            >
+                                {{ item.description }}
+                            </p>
+
+                        </div>
+
+                    </article>
+
+                    {% endif %}
+
+                {% empty %}
+
+                <p class="text-ink/60">
+                    Menu items will be added soon.
+                </p>
+
+                {% endfor %}
+
+            </div>
+
+        </section>
+
+        {% endwith %}
+
+    {% empty %}
+
+    <p class="text-center text-ink/60">
+        Our menu is being prepared. Please check back soon.
+    </p>
+
+    {% endfor %}
+
 </section>
+
 {% endblock %}

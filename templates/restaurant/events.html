@@ -1,0 +1,66 @@
+{% extends 'restaurant/base.html' %}
+
+{% block title %}
+    Events | Casa Sonata
+{% endblock %}
+
+{% block content %}
+<section class="bg-ink px-6 pb-16 pt-40 text-center text-white">
+    <p class="text-xs font-bold uppercase tracking-[.3em] text-gold">At Casa Sonata</p>
+    <h1 class="mt-4 font-serif text-6xl">Events</h1>
+    <p class="mx-auto mt-5 max-w-2xl text-white/70">Join us for music, special dining, celebrations, and more.</p>
+</section>
+
+<section class="mx-auto max-w-7xl px-6 py-16 lg:px-10">
+    <h2 class="mb-8 font-serif text-4xl">Upcoming &amp; ongoing</h2>
+    <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+        {% for event in upcoming_events %}
+            <article class="overflow-hidden border border-ink/10 bg-white">
+                <a href="{% url 'event_detail' slug=event.slug %}" class="block">
+                    {% if event.image %}
+                        <img class="aspect-[4/3] w-full object-cover" src="{{ event.image.url }}" alt="{{ event.title }} poster">
+                    {% else %}
+                        <div class="flex aspect-[4/3] items-center justify-center bg-olive p-8 text-center font-serif text-3xl text-cream">{{ event.title }}</div>
+                    {% endif %}
+                </a>
+                <div class="p-6">
+                    <p class="text-xs font-bold uppercase tracking-widest text-clay">{{ event.get_category_display }} · {{ event.display_status }}</p>
+                    <h3 class="mt-3 font-serif text-2xl"><a href="{% url 'event_detail' slug=event.slug %}">{{ event.title }}</a></h3>
+                    <p class="mt-2 text-sm text-ink/60">{{ event.event_date|date:'l, F j, Y' }} · {{ event.start_time|time:'g:i A' }}–{{ event.end_time|time:'g:i A' }}</p>
+                    <p class="mt-3 text-sm leading-6 text-ink/70">{{ event.description|truncatewords:28 }}</p>
+                    <a class="mt-5 inline-block border-b border-gold pb-1 text-xs font-bold uppercase tracking-widest" href="{% url 'event_detail' slug=event.slug %}">View event details</a>
+                </div>
+            </article>
+        {% empty %}
+            <p class="text-ink/60">There are no upcoming events right now. Please check back soon.</p>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="bg-[#EAE3D4] px-6 py-16 lg:px-10">
+    <div class="mx-auto max-w-7xl">
+        <h2 class="mb-8 font-serif text-4xl">Past events</h2>
+        <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+            {% for event in past_events %}
+                <article class="overflow-hidden border border-ink/10 bg-white">
+                    <a href="{% url 'event_detail' slug=event.slug %}" class="block">
+                        {% if event.image %}
+                            <img class="aspect-[4/3] w-full object-cover" src="{{ event.image.url }}" alt="{{ event.title }} poster">
+                        {% else %}
+                            <div class="flex aspect-[4/3] items-center justify-center bg-olive p-8 text-center font-serif text-3xl text-cream">{{ event.title }}</div>
+                        {% endif %}
+                    </a>
+                    <div class="p-6">
+                        <p class="text-xs font-bold uppercase tracking-widest text-clay">{{ event.get_category_display }} · {{ event.display_status }}</p>
+                        <h3 class="mt-3 font-serif text-2xl"><a href="{% url 'event_detail' slug=event.slug %}">{{ event.title }}</a></h3>
+                        <p class="mt-2 text-sm text-ink/60">{{ event.event_date|date:'F j, Y' }}</p>
+                        <p class="mt-3 text-sm leading-6 text-ink/70">{{ event.description|truncatewords:24 }}</p>
+                    </div>
+                </article>
+            {% empty %}
+                <p class="text-ink/60">Past events will be listed here.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

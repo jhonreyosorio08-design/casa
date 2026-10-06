@@ -1,12 +1,1740 @@
-{% load static %}<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Casa Sonata · Staff</title><link rel="stylesheet" href="{% static 'css/style.css' %}"><style>
-:root{--forest:#26382f;--sage:#64745e;--cream:#f5f3ed;--line:#e8e7df;--gold:#c89558;--muted:#81877f}*{box-sizing:border-box}body{margin:0;background:var(--cream);color:#222923;font:14px Arial,sans-serif}.shell{min-height:100vh;display:grid;grid-template-columns:225px 1fr}.side{background:var(--forest);color:#f7f5ef;padding:28px 18px;display:flex;flex-direction:column}.brand{font:24px Georgia,serif;padding:0 12px 5px}.sub{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#aeb8aa;padding:0 12px 30px}.cap{font-size:9px;color:#95a497;letter-spacing:.2em;padding:12px}.nav{display:block;padding:11px 12px;color:#dce1da;text-decoration:none;border-radius:7px;margin:2px 0}.nav:hover,.nav.active{background:#ffffff15;color:white}.foot{margin-top:auto;border-top:1px solid #ffffff20;padding:16px 12px 0;color:#cbd1ca;font-size:12px}.foot button{margin-top:10px;background:none;border:1px solid #ffffff45;color:white;padding:8px 12px;cursor:pointer}.main{min-width:0;padding:28px 34px 52px;max-width:1500px;width:100%;margin:auto}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}.eyebrow{font-size:10px;color:var(--sage);letter-spacing:.2em;text-transform:uppercase}.title{font:32px Georgia,serif;margin:7px 0 0}.role{border:1px solid #deddd5;background:#fff;padding:9px 13px;border-radius:99px;font-size:11px}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;margin-bottom:16px}.card,.panel{background:#fff;border:1px solid var(--line);border-radius:10px}.card{padding:16px 19px}.label{color:#7c827a;font-size:12px}.value{font:26px Georgia,serif;margin-top:8px}.layout{display:grid;grid-template-columns:1fr 1fr;gap:15px}.panel{padding:19px;min-width:0}.panel.full{grid-column:1/-1}.panelhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:13px}.panel h2{font:20px Georgia,serif;margin:0}.tiny{color:var(--muted);font-size:11px}.wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:540px}th{text-align:left;color:#858b83;font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:10px 8px;border-bottom:1px solid var(--line)}td{padding:11px 8px;border-bottom:1px solid #f0efe9;font-size:12px;vertical-align:middle}tr:last-child td{border:0}.pill{display:inline-block;border-radius:99px;background:#f5eeda;color:#94713d;padding:5px 9px;font-size:10px;white-space:nowrap}.pill.green{background:#e9f1e8;color:#4e714e}.pill.red{background:#f8e9e6;color:#a54c3f}.formrow{display:flex;gap:5px;align-items:center}.formrow input{width:65px;padding:6px;font-size:11px}.formrow select{width:auto;padding:6px;font-size:11px}.btn{border:0;border-radius:5px;padding:7px 9px;font-size:10px;cursor:pointer;font-weight:bold;background:#edf0e9;color:#425442}.btn.primary{background:#344f3c;color:white}.btn.reject{background:#f5e8e4;color:#9d5145}.actions{display:flex;gap:5px}.empty{padding:24px 6px;color:#8a9088;text-align:center;font-size:12px}.messages{list-style:none;padding:0;margin:0 0 12px}.messages li{padding:10px;background:#edf2e8;border-radius:7px;margin-bottom:6px;font-size:12px}.alert{padding:10px 13px;background:#fbf5e8;border-radius:7px;color:#80643f;font-size:12px;margin-bottom:12px}a.receipt{color:#536c50;font-size:11px}.signin{font-size:12px;color:#eee}.report{padding:16px;background:#f9f8f4;border:1px solid var(--line);border-radius:8px}.report strong{display:block;font:23px Georgia,serif;margin-top:7px}@media(max-width:950px){.shell{grid-template-columns:180px 1fr}.main{padding:22px 16px}.layout{grid-template-columns:1fr}}@media(max-width:620px){.shell{display:block}.side{padding:12px 15px;display:block}.brand{display:inline-block;font-size:21px}.sub{display:inline-block;padding:0 0 0 10px}.cap,.nav,.foot{display:none}.main{padding:20px 12px}.top{align-items:flex-start}.title{font-size:26px}.cards{gap:8px}.card{padding:13px}.value{font-size:21px}.panel{padding:14px}.panel.full{grid-column:auto}}
-</style></head><body><div class="shell"><aside class="side"><div class="brand">Casa Sonata</div><div class="sub">Staff workspace</div><div class="cap">OPERATIONS</div><a class="nav active" href="{% url 'staff_dashboard' %}">Overview</a>{% if can_orders %}<a class="nav" href="#orders">Food orders</a>{% endif %}{% if can_payments %}<a class="nav" href="#payments">Payments & receipts</a>{% endif %}{% if can_tables %}<a class="nav" href="#tables">Table status</a>{% endif %}{% if can_inventory %}<a class="nav" href="#inventory">Inventory</a>{% endif %}<div class="foot">Signed in as <strong>{{ request.user.username }}</strong><br><form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">Sign out</button></form></div></aside><main class="main"><header class="top"><div><div class="eyebrow">{{ today|date:'l, F j, Y' }}</div><h1 class="title">Daily operations</h1></div><span class="role">{{ request.user.groups.first.name|default:'Authorized staff' }}</span></header>{% if messages %}<ul class="messages">{% for message in messages %}<li>{{ message }}</li>{% endfor %}</ul>{% endif %}
-<section class="cards">{% if can_reservations %}<article class="card"><div class="label">Today's reservations</div><div class="value">{{ reservations_today }}</div></article>{% endif %}{% if can_orders %}<article class="card"><div class="label">Orders in queue</div><div class="value">{{ orders.count }}</div></article>{% endif %}{% if can_tables %}<article class="card"><div class="label">Occupied tables</div><div class="value">{{ tables_occupied }} <span class="tiny">/ {{ tables.count }}</span></div></article>{% endif %}</section>
-<div class="layout">
-{% if can_orders %}<section class="panel full" id="orders"><div class="panelhead"><h2>Food orders</h2><span class="tiny">Kitchen and service queue</span></div><div class="wrap"><table><thead><tr><th>Order</th><th>Items</th><th>Table / guest</th><th>Order status</th><th>Update</th>{% if can_payments %}<th>Receipt</th>{% endif %}</tr></thead><tbody>{% for order in orders %}<tr><td><strong>{{ order.reservation.reference }}</strong><br><span class="tiny">{{ order.created_at|date:'g:i A' }}</span></td><td>{% for row in order.items.all %}{{ row.quantity }}× {{ row.name }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</td><td>{{ order.reservation.table.name|default:'Unassigned' }}<br><span class="tiny">{{ order.reservation.name }}</span></td><td><span class="pill {% if order.order_status == 'completed' %}green{% endif %}">{{ order.get_order_status_display }}</span></td><td>{% if can_order_update %}<form class="formrow" method="post">{% csrf_token %}<input type="hidden" name="action" value="update_order_status"><input type="hidden" name="order_id" value="{{ order.pk }}"><select name="status">{% for value,label in order_status_choices %}<option value="{{ value }}"{% if order.order_status == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select><button class="btn">Save</button></form>{% else %}<span class="tiny">View only</span>{% endif %}</td>{% if can_payments %}<td><a class="receipt" href="{% url 'staff_receipt' order_id=order.pk %}">View / print</a></td>{% endif %}</tr>{% empty %}<tr><td class="empty" colspan="6">No food orders right now.</td></tr>{% endfor %}</tbody></table></div></section>{% endif %}
-{% if can_payments %}<section class="panel full" id="payments"><div class="panelhead"><h2>GCash payments</h2><span class="tiny">Payment details are limited to authorized roles.</span></div><div class="wrap"><table><thead><tr><th>Reservation</th><th>Customer</th><th>Amount</th><th>Reference</th><th>Status</th><th>Decision</th></tr></thead><tbody>{% for order in payment_orders %}<tr><td>{{ order.reservation.reference }}</td><td>{{ order.reservation.name }}</td><td>₱{{ order.amount|floatformat:2 }}</td><td>{{ order.gateway_reference|default:'—' }}</td><td><span class="pill {% if order.payment_status == 'paid' %}green{% elif order.payment_status == 'failed' %}red{% endif %}">{{ order.get_payment_status_display }}</span></td><td><div class="actions">{% if can_payment_update and order.payment_status == 'pending' %}<form method="post">{% csrf_token %}<input type="hidden" name="action" value="approve_payment"><input type="hidden" name="order_id" value="{{ order.pk }}"><button class="btn primary">Accept</button></form><form method="post">{% csrf_token %}<input type="hidden" name="action" value="reject_payment"><input type="hidden" name="order_id" value="{{ order.pk }}"><button class="btn reject">Reject</button></form>{% endif %}<a class="receipt" href="{% url 'staff_receipt' order_id=order.pk %}">Receipt</a></div></td></tr>{% empty %}<tr><td class="empty" colspan="6">No payments submitted.</td></tr>{% endfor %}</tbody></table></div></section>{% endif %}
-{% if can_tables %}<section class="panel" id="tables"><div class="panelhead"><h2>Tables 1–6</h2><span class="tiny">Live occupancy</span></div><div class="wrap"><table><thead><tr><th>Table</th><th>Seats</th><th>Status</th>{% if can_table_update %}<th>Action</th>{% endif %}</tr></thead><tbody>{% for table in tables %}<tr><td><strong>{{ table.name }}</strong></td><td>{{ table.seats }}</td><td>{% if table.occupied %}<span class="pill red">Occupied</span>{% else %}<span class="pill green">Available</span>{% endif %}</td>{% if can_table_update %}<td><form method="post">{% csrf_token %}<input type="hidden" name="action" value="toggle_table"><input type="hidden" name="table_id" value="{{ table.pk }}"><input type="hidden" name="occupied" value="{% if table.occupied %}false{% else %}true{% endif %}"><button class="btn">Mark {% if table.occupied %}available{% else %}occupied{% endif %}</button></form></td>{% endif %}</tr>{% endfor %}</tbody></table></div></section>{% endif %}
-{% if can_reservations %}<section class="panel" id="reservations"><div class="panelhead"><h2>Reservations</h2><span class="tiny">Guest details for service</span></div><div class="wrap"><table><thead><tr><th>Guest</th><th>Date & time</th><th>Party</th><th>Table</th><th>Status</th></tr></thead><tbody>{% for booking in recent_reservations %}<tr><td>{{ booking.name }}<br><span class="tiny">{{ booking.reference }}</span></td><td>{{ booking.reservation_date }}<br>{{ booking.reservation_time|time:'g:i A' }}</td><td>{{ booking.guests }}</td><td>{{ booking.table.name|default:'Unassigned' }}</td><td>{{ booking.get_status_display }}</td></tr>{% empty %}<tr><td class="empty" colspan="5">No reservations.</td></tr>{% endfor %}</tbody></table></div></section>{% endif %}
-{% if can_inventory %}<section class="panel full" id="inventory"><div class="panelhead"><h2>Inventory</h2>{% if can_movements %}<a class="tiny" href="/admin/restaurant/stockmovement/">Movement history ↗</a>{% endif %}</div>{% if low_stock %}<div class="alert">{{ low_stock.count }} low or out-of-stock item{{ low_stock.count|pluralize }} need attention.</div>{% endif %}<div class="wrap"><table><thead><tr><th>Ingredient</th><th>On hand</th><th>Threshold</th><th>Stock status</th>{% if can_stock_update %}<th>Record movement</th>{% endif %}</tr></thead><tbody>{% for item in inventory %}<tr><td>{{ item.name }}</td><td>{{ item.quantity|floatformat:2 }} {{ item.unit }}</td><td>{{ item.low_stock_threshold|floatformat:2 }} {{ item.unit }}</td><td>{% if item.quantity <= 0 %}<span class="pill red">Out of stock</span>{% elif item.quantity <= item.low_stock_threshold %}<span class="pill">Low stock</span>{% else %}<span class="pill green">In stock</span>{% endif %}</td>{% if can_stock_update %}<td><div class="actions"><form class="formrow" method="post">{% csrf_token %}<input type="hidden" name="action" value="stock_in"><input type="hidden" name="item_id" value="{{ item.pk }}"><input type="number" name="quantity" min=".01" step=".01" placeholder="Qty" required><button class="btn">Stock in</button></form><form class="formrow" method="post">{% csrf_token %}<input type="hidden" name="action" value="stock_usage"><input type="hidden" name="item_id" value="{{ item.pk }}"><input type="number" name="quantity" min=".01" step=".01" placeholder="Qty" required><button class="btn">Usage</button></form></div></td>{% endif %}</tr>{% empty %}<tr><td class="empty" colspan="5">No inventory items have been added.</td></tr>{% endfor %}</tbody></table></div></section>{% endif %}
-{% include "restaurant/staff_movements.html" %}{% if can_reports %}<section class="panel full"><div class="panelhead"><h2>Financial reports</h2><span class="tiny">Administrator-authorized access</span></div><div class="cards"><div class="report">Sales today<strong>₱{{ sales_today|floatformat:2 }}</strong></div><div class="report">Sales this month<strong>₱{{ month_sales|floatformat:2 }}</strong></div><div class="report">Sales year to date<strong>₱{{ year_sales|floatformat:2 }}</strong></div></div></section>{% endif %}
-</div></main></div></body></html>
+{% load static %}
+
+<!doctype html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>Casa Sonata · Staff</title>
+
+    <link
+        rel="stylesheet"
+        href="{% static 'css/style.css' %}"
+    >
+
+    <style>
+
+        :root {
+            --forest: #26382f;
+            --sage: #64745e;
+            --cream: #f5f3ed;
+            --line: #e8e7df;
+            --gold: #c89558;
+            --muted: #81877f;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: var(--cream);
+            color: #222923;
+            font: 14px Arial, sans-serif;
+        }
+
+        .shell {
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: 225px 1fr;
+        }
+
+        .side {
+            background: var(--forest);
+            color: #f7f5ef;
+            padding: 28px 18px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand {
+            font: 24px Georgia, serif;
+            padding: 0 12px 5px;
+        }
+
+        .sub {
+            font-size: 10px;
+            letter-spacing: .2em;
+            text-transform: uppercase;
+            color: #aeb8aa;
+            padding: 0 12px 30px;
+        }
+
+        .cap {
+            font-size: 9px;
+            color: #95a497;
+            letter-spacing: .2em;
+            padding: 12px;
+        }
+
+        .nav {
+            display: block;
+            padding: 11px 12px;
+            color: #dce1da;
+            text-decoration: none;
+            border-radius: 7px;
+            margin: 2px 0;
+        }
+
+        .nav:hover,
+        .nav.active {
+            background: #ffffff15;
+            color: white;
+        }
+
+        .foot {
+            margin-top: auto;
+            border-top: 1px solid #ffffff20;
+            padding: 16px 12px 0;
+            color: #cbd1ca;
+            font-size: 12px;
+        }
+
+        .foot button {
+            margin-top: 10px;
+            background: none;
+            border: 1px solid #ffffff45;
+            color: white;
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+
+        .main {
+            min-width: 0;
+            padding: 28px 34px 52px;
+            max-width: 1500px;
+            width: 100%;
+            margin: auto;
+        }
+
+        .top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .eyebrow {
+            font-size: 10px;
+            color: var(--sage);
+            letter-spacing: .2em;
+            text-transform: uppercase;
+        }
+
+        .title {
+            font: 32px Georgia, serif;
+            margin: 7px 0 0;
+        }
+
+        .role {
+            border: 1px solid #deddd5;
+            background: #fff;
+            padding: 9px 13px;
+            border-radius: 99px;
+            font-size: 11px;
+        }
+
+        .back-site {
+            border: 1px solid var(--gold);
+            color: #26382f;
+            padding: 9px 13px;
+            border-radius: 99px;
+            font-size: 11px;
+            font-weight: 700;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .back-site:hover {
+            background: var(--gold);
+            color: white;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 13px;
+            margin-bottom: 16px;
+        }
+
+        .card,
+        .panel {
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+        }
+
+        .card {
+            padding: 16px 19px;
+        }
+
+        .label {
+            color: #7c827a;
+            font-size: 12px;
+        }
+
+        .value {
+            font: 26px Georgia, serif;
+            margin-top: 8px;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .panel {
+            padding: 19px;
+            min-width: 0;
+        }
+
+        .panel.full {
+            grid-column: 1 / -1;
+        }
+
+        .panelhead {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 13px;
+        }
+
+        .panel h2 {
+            font: 20px Georgia, serif;
+            margin: 0;
+        }
+
+        .tiny {
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .wrap {
+            overflow: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 540px;
+        }
+
+        th {
+            text-align: left;
+            color: #858b83;
+            font-size: 10px;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            padding: 10px 8px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        td {
+            padding: 11px 8px;
+            border-bottom: 1px solid #f0efe9;
+            font-size: 12px;
+            vertical-align: middle;
+        }
+
+        tr:last-child td {
+            border: 0;
+        }
+
+        .pill {
+            display: inline-block;
+            border-radius: 99px;
+            background: #f5eeda;
+            color: #94713d;
+            padding: 5px 9px;
+            font-size: 10px;
+            white-space: nowrap;
+        }
+
+        .pill.green {
+            background: #e9f1e8;
+            color: #4e714e;
+        }
+
+        .pill.red {
+            background: #f8e9e6;
+            color: #a54c3f;
+        }
+
+        .formrow {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .formrow input {
+            width: 65px;
+            padding: 6px;
+            font-size: 11px;
+        }
+
+        .formrow select {
+            width: auto;
+            padding: 6px;
+            font-size: 11px;
+        }
+
+        .btn {
+            border: 0;
+            border-radius: 5px;
+            padding: 7px 9px;
+            font-size: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            background: #edf0e9;
+            color: #425442;
+        }
+
+        .btn.primary {
+            background: #344f3c;
+            color: white;
+        }
+
+        .btn.reject {
+            background: #f5e8e4;
+            color: #9d5145;
+        }
+
+        .actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .empty {
+            padding: 24px 6px;
+            color: #8a9088;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .messages {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 12px;
+        }
+
+        .messages li {
+            padding: 10px;
+            background: #edf2e8;
+            border-radius: 7px;
+            margin-bottom: 6px;
+            font-size: 12px;
+        }
+
+        .alert {
+            padding: 10px 13px;
+            background: #fbf5e8;
+            border-radius: 7px;
+            color: #80643f;
+            font-size: 12px;
+            margin-bottom: 12px;
+        }
+
+        a.receipt {
+            color: #536c50;
+            font-size: 11px;
+        }
+
+        .signin {
+            font-size: 12px;
+            color: #eee;
+        }
+
+        .report {
+            padding: 16px;
+            background: #f9f8f4;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+        }
+
+        .report strong {
+            display: block;
+            font: 23px Georgia, serif;
+            margin-top: 7px;
+        }
+
+        @media (max-width: 950px) {
+
+            .shell {
+                grid-template-columns: 180px 1fr;
+            }
+
+            .main {
+                padding: 22px 16px;
+            }
+
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+        }
+
+        @media (max-width: 620px) {
+
+            .shell {
+                display: block;
+            }
+
+            .side {
+                padding: 12px 15px;
+                display: block;
+            }
+
+            .brand {
+                display: inline-block;
+                font-size: 21px;
+            }
+
+            .sub {
+                display: inline-block;
+                padding: 0 0 0 10px;
+            }
+
+            .cap,
+            .nav,
+            .foot {
+                display: none;
+            }
+
+            .main {
+                padding: 20px 12px;
+            }
+
+            .top {
+                align-items: flex-start;
+            }
+
+            .title {
+                font-size: 26px;
+            }
+
+            .cards {
+                gap: 8px;
+            }
+
+            .card {
+                padding: 13px;
+            }
+
+            .value {
+                font-size: 21px;
+            }
+
+            .panel {
+                padding: 14px;
+            }
+
+            .panel.full {
+                grid-column: auto;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+    <div class="shell">
+
+        <!-- Sidebar -->
+
+        <aside class="side">
+
+            <div class="brand">
+                Casa Sonata
+            </div>
+
+            <div class="sub">
+                Staff workspace
+            </div>
+
+            <div class="cap">
+                OPERATIONS
+            </div>
+
+
+            <a
+                class="nav active"
+                href="{% url 'staff_dashboard' %}"
+            >
+                Overview
+            </a>
+
+
+            {% if can_orders %}
+
+            <a
+                class="nav"
+                href="#orders"
+            >
+                Food orders
+            </a>
+
+            {% endif %}
+
+
+            {% if can_payments %}
+
+            <a
+                class="nav"
+                href="#payments"
+            >
+                Payments & receipts
+            </a>
+
+            {% endif %}
+
+
+            {% if can_tables %}
+
+            <a
+                class="nav"
+                href="#tables"
+            >
+                Table status
+            </a>
+
+            {% endif %}
+
+            {% if can_ktv %}
+            <a class="nav" href="#ktv">KTV rooms &amp; schedule</a>
+            {% endif %}
+
+
+            {% if can_inventory %}
+
+            <a
+                class="nav"
+                href="#inventory"
+            >
+                Inventory
+            </a>
+
+            {% endif %}
+
+
+            <div class="foot">
+
+                Signed in as
+                <strong>
+                    {{ request.user.username }}
+                </strong>
+
+                <br>
+
+                <form
+                    method="post"
+                    action="{% url 'logout' %}"
+                >
+
+                    {% csrf_token %}
+
+                    <button type="submit">
+                        Sign out
+                    </button>
+
+                </form>
+
+            </div>
+
+        </aside>
+
+
+        <!-- Main Content -->
+
+        <main class="main">
+
+            <header class="top">
+
+                <div>
+
+                    <div class="eyebrow">
+                        {{ today|date:'l, F j, Y' }}
+                    </div>
+
+                    <h1 class="title">
+                        Daily operations
+                    </h1>
+
+                </div>
+
+                <div style="display:flex;align-items:center;gap:10px">
+                    <span class="role">
+                        {{ request.user.groups.first.name|default:'Authorized staff' }}
+                    </span>
+                    <a class="back-site" href="{% url 'public_home' %}">Back to site</a>
+                </div>
+
+            </header>
+
+
+            {% if messages %}
+
+            <ul class="messages">
+
+                {% for message in messages %}
+
+                <li>
+                    {{ message }}
+                </li>
+
+                {% endfor %}
+
+            </ul>
+
+            {% endif %}
+
+
+            <!-- Summary Cards -->
+
+            <section class="cards">
+
+                {% if can_reservations %}
+
+                <article class="card">
+
+                    <div class="label">
+                        Today's reservations
+                    </div>
+
+                    <div class="value">
+                        {{ reservations_today }}
+                    </div>
+
+                </article>
+
+                {% endif %}
+
+
+                {% if can_orders %}
+
+                <article class="card">
+
+                    <div class="label">
+                        Orders in queue
+                    </div>
+
+                    <div class="value">
+                        {{ orders.count }}
+                    </div>
+
+                </article>
+
+                {% endif %}
+
+
+                {% if can_tables %}
+
+                <article class="card">
+
+                    <div class="label">
+                        Occupied tables
+                    </div>
+
+                    <div class="value">
+
+                        {{ tables_occupied }}
+
+                        <span class="tiny">
+                            / {{ tables.count }}
+                        </span>
+
+                    </div>
+
+                </article>
+
+                {% endif %}
+
+            </section>
+
+
+            <div class="layout">
+
+
+                <!-- Food Orders -->
+
+                {% if can_orders %}
+
+                <section
+                    class="panel full"
+                    id="orders"
+                >
+
+                    <div class="panelhead">
+
+                        <h2>
+                            Food orders
+                        </h2>
+
+                        <span class="tiny">
+                            Kitchen and service queue
+                        </span>
+
+                    </div>
+
+
+                    <div class="wrap">
+
+                        <table>
+
+                            <thead>
+
+                                <tr>
+
+                                    <th>
+                                        Order
+                                    </th>
+
+                                    <th>
+                                        Items
+                                    </th>
+
+                                    <th>
+                                        Table / guest
+                                    </th>
+
+                                    <th>
+                                        Order status
+                                    </th>
+
+                                    <th>
+                                        Update
+                                    </th>
+
+                                    {% if can_payments %}
+
+                                    <th>
+                                        Receipt
+                                    </th>
+
+                                    {% endif %}
+
+                                </tr>
+
+                            </thead>
+
+
+                            <tbody>
+
+                                {% for order in orders %}
+
+                                <tr>
+
+                                    <td>
+
+                                        <strong>
+                                            {{ order.reservation.reference }}
+                                        </strong>
+
+                                        <br>
+
+                                        <span class="tiny">
+                                            {{ order.created_at|date:'g:i A' }}
+                                        </span>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        {% for row in order.items.all %}
+
+                                            {{ row.quantity }}× {{ row.name }}
+
+                                            {% if not forloop.last %}
+                                                <br>
+                                            {% endif %}
+
+                                        {% endfor %}
+
+                                    </td>
+
+
+                                    <td>
+
+                                        {% if order.reservation.is_ktv %}
+                                            KTV · {{ order.reservation.ktv_room.name }}
+                                        {% else %}
+                                            {{ order.reservation.table.name|default:'Unassigned' }}
+                                        {% endif %}
+
+                                        <br>
+
+                                        <span class="tiny">
+                                            {{ order.reservation.name }}
+                                        </span>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <span
+                                            class="pill {% if order.order_status == 'completed' %}green{% endif %}"
+                                        >
+                                            {{ order.get_order_status_display }}
+                                        </span>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        {% if can_order_update %}
+
+                                        <form
+                                            class="formrow"
+                                            method="post"
+                                        >
+
+                                            {% csrf_token %}
+
+                                            <input
+                                                type="hidden"
+                                                name="action"
+                                                value="update_order_status"
+                                            >
+
+                                            <input
+                                                type="hidden"
+                                                name="order_id"
+                                                value="{{ order.pk }}"
+                                            >
+
+                                            <select name="status">
+
+                                                {% for value, label in order_status_choices %}
+
+                                                <option
+                                                    value="{{ value }}"
+                                                    {% if order.order_status == value %}selected{% endif %}
+                                                >
+                                                    {{ label }}
+                                                </option>
+
+                                                {% endfor %}
+
+                                            </select>
+
+                                            <button class="btn">
+                                                Save
+                                            </button>
+
+                                        </form>
+
+                                        {% else %}
+
+                                        <span class="tiny">
+                                            View only
+                                        </span>
+
+                                        {% endif %}
+
+                                    </td>
+
+
+                                    {% if can_payments %}
+
+                                    <td>
+
+                                        <a
+                                            class="receipt"
+                                            href="{% url 'staff_receipt' order_id=order.pk %}"
+                                        >
+                                            View / print
+                                        </a>
+
+                                    </td>
+
+                                    {% endif %}
+
+                                </tr>
+
+
+                                {% empty %}
+
+                                <tr>
+
+                                    <td
+                                        class="empty"
+                                        colspan="6"
+                                    >
+                                        No food orders right now.
+                                    </td>
+
+                                </tr>
+
+                                {% endfor %}
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </section>
+
+                {% endif %}
+
+
+                <!-- GCash Payments -->
+
+                {% if can_payments %}
+
+                <section
+                    class="panel full"
+                    id="payments"
+                >
+
+                    <div class="panelhead">
+
+                        <h2>
+                            GCash payments
+                        </h2>
+
+                        <span class="tiny">
+                            Payment details are limited to authorized roles.
+                        </span>
+
+                    </div>
+
+
+                    <div class="wrap">
+
+                        <table>
+
+                            <thead>
+
+                                <tr>
+
+                                    <th>
+                                        Reservation
+                                    </th>
+
+                                    <th>
+                                        Customer
+                                    </th>
+
+                                    <th>
+                                        Amount
+                                    </th>
+
+                                    <th>
+                                        Reference
+                                    </th>
+
+                                    <th>
+                                        Status
+                                    </th>
+
+                                    <th>
+                                        Decision
+                                    </th>
+
+                                </tr>
+
+                            </thead>
+
+
+                            <tbody>
+
+                                {% for order in payment_orders %}
+
+                                <tr>
+
+                                    <td>
+                                        {{ order.reservation.reference }}
+                                        {% if order.reservation.is_ktv %}<br><span class="tiny">KTV · {{ order.reservation.ktv_room.name }}</span>{% endif %}
+                                    </td>
+
+                                    <td>
+                                        {{ order.reservation.name }}
+                                    </td>
+
+                                    <td>
+                                        ₱{{ order.total_amount|floatformat:2 }}
+                                    </td>
+
+                                    <td>
+                                        {{ order.gateway_reference|default:'—' }}
+                                    </td>
+
+                                    <td>
+
+                                        <span
+                                            class="pill {% if order.payment_status == 'paid' %}green{% elif order.payment_status == 'failed' %}red{% endif %}"
+                                        >
+                                            {{ order.get_payment_status_display }}
+                                        </span>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <div class="actions">
+
+                                            {% if can_payment_update and order.payment_status == 'pending' %}
+
+                                            <form method="post">
+
+                                                {% csrf_token %}
+
+                                                <input
+                                                    type="hidden"
+                                                    name="action"
+                                                    value="approve_payment"
+                                                >
+
+                                                <input
+                                                    type="hidden"
+                                                    name="order_id"
+                                                    value="{{ order.pk }}"
+                                                >
+
+                                                <button class="btn primary">
+                                                    Accept
+                                                </button>
+
+                                            </form>
+
+
+                                            <form method="post">
+
+                                                {% csrf_token %}
+
+                                                <input
+                                                    type="hidden"
+                                                    name="action"
+                                                    value="reject_payment"
+                                                >
+
+                                                <input
+                                                    type="hidden"
+                                                    name="order_id"
+                                                    value="{{ order.pk }}"
+                                                >
+
+                                                <button class="btn reject">
+                                                    Reject
+                                                </button>
+
+                                            </form>
+
+                                            {% endif %}
+
+
+                                            <a
+                                                class="receipt"
+                                                href="{% url 'staff_receipt' order_id=order.pk %}"
+                                            >
+                                                Receipt
+                                            </a>
+
+                                        </div>
+
+                                    </td>
+
+                                </tr>
+
+
+                                {% empty %}
+
+                                <tr>
+
+                                    <td
+                                        class="empty"
+                                        colspan="6"
+                                    >
+                                        No payments submitted.
+                                    </td>
+
+                                </tr>
+
+                                {% endfor %}
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </section>
+
+                {% endif %}
+
+
+                <!-- Tables -->
+
+                {% if can_tables %}
+
+                <section
+                    class="panel"
+                    id="tables"
+                >
+
+                    <div class="panelhead">
+
+                        <h2>
+                            Tables 1–6
+                        </h2>
+
+                        <span class="tiny">
+                            Live occupancy
+                        </span>
+
+                    </div>
+
+
+                    <div class="wrap">
+
+                        <table>
+
+                            <thead>
+
+                                <tr>
+
+                                    <th>
+                                        Table
+                                    </th>
+
+                                    <th>
+                                        Seats
+                                    </th>
+
+                                    <th>
+                                        Status
+                                    </th>
+
+                                    {% if can_table_update %}
+
+                                    <th>
+                                        Action
+                                    </th>
+
+                                    {% endif %}
+
+                                </tr>
+
+                            </thead>
+
+
+                            <tbody>
+
+                                {% for table in tables %}
+
+                                <tr>
+
+                                    <td>
+                                        <strong>
+                                            {{ table.name }}
+                                        </strong>
+                                    </td>
+
+                                    <td>
+                                        {{ table.seats }}
+                                    </td>
+
+                                    <td>
+
+                                        {% if table.occupied %}
+
+                                        <span class="pill red">
+                                            Occupied
+                                        </span>
+
+                                        {% else %}
+
+                                        <span class="pill green">
+                                            Available
+                                        </span>
+
+                                        {% endif %}
+
+                                    </td>
+
+
+                                    {% if can_table_update %}
+
+                                    <td>
+
+                                        <form method="post">
+
+                                            {% csrf_token %}
+
+                                            <input
+                                                type="hidden"
+                                                name="action"
+                                                value="toggle_table"
+                                            >
+
+                                            <input
+                                                type="hidden"
+                                                name="table_id"
+                                                value="{{ table.pk }}"
+                                            >
+
+                                            <input
+                                                type="hidden"
+                                                name="occupied"
+                                                value="{% if table.occupied %}false{% else %}true{% endif %}"
+                                            >
+
+                                            <button class="btn">
+
+                                                Mark
+                                                {% if table.occupied %}
+                                                    available
+                                                {% else %}
+                                                    occupied
+                                                {% endif %}
+
+                                            </button>
+
+                                        </form>
+
+                                    </td>
+
+                                    {% endif %}
+
+                                </tr>
+
+                                {% endfor %}
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </section>
+
+                {% endif %}
+
+
+                {% if can_ktv %}
+                <section class="panel" id="ktv">
+                    <div class="panelhead">
+                        <h2>KTV rooms and today’s schedule</h2>
+                        <span class="tiny">Room settings and prices are managed by the administrator</span>
+                    </div>
+                    <div class="wrap">
+                        <table>
+                            <thead><tr><th>Room</th><th>Capacity</th><th>Hourly price</th><th>Current status</th><th>Update</th></tr></thead>
+                            <tbody>
+                                {% for room in ktv_rooms %}
+                                    <tr>
+                                        <td>{{ room.name }} · {{ room.room_type }}</td>
+                                        <td>{{ room.min_capacity }}–{{ room.max_capacity }}</td>
+                                        <td>₱{{ room.hourly_price|floatformat:2 }}</td>
+                                        <td>{{ room.current_status_label }}</td>
+                                        <td>
+                                            {% if can_ktv_update %}
+                                                <form method="post" class="inline-form">
+                                                    {% csrf_token %}<input type="hidden" name="action" value="update_ktv_room_status"><input type="hidden" name="room_id" value="{{ room.pk }}">
+                                                    <select name="status">{% for value, label in room.next_status_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select>
+                                                    <button class="btn">Update</button>
+                                                </form>
+                                            {% else %}View only{% endif %}
+                                        </td>
+                                    </tr>
+                                {% empty %}<tr><td colspan="5">No active KTV rooms.</td></tr>{% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="panelhead"><h2>Today’s KTV reservations</h2></div>
+                    <div class="wrap">
+                        <table>
+                            <thead><tr><th>Guest</th><th>Room and time</th><th>Hours</th><th>Food order</th><th>Order status</th><th>Payment</th><th>Reservation</th><th>Cancelled at</th></tr></thead>
+                            <tbody>
+                                {% for booking in ktv_reservations_today %}
+                                    <tr>
+                                        <td>{{ booking.name }}<br>{{ booking.phone }} · {{ booking.email }}</td>
+                                        <td>{{ booking.ktv_room }}<br>{{ booking.reservation_time }}</td>
+                                        <td>{{ booking.duration_hours }}</td>
+                                        <td>{% for item in booking.food_order.items.all %}{{ item.quantity }} × {{ item.name }}{% if not forloop.last %}<br>{% endif %}{% empty %}No items{% endfor %}</td>
+                                        <td>{{ booking.food_order.get_order_status_display|default:"—" }}</td>
+                                        <td>{{ booking.food_order.get_payment_status_display|default:"Not checked out" }}</td>
+                                        <td>{{ booking.get_status_display }}</td>
+                                        <td>{{ booking.cancelled_at|date:'M j, Y · g:i A'|default:"—" }}</td>
+                                    </tr>
+                                {% empty %}<tr><td colspan="8">No KTV reservations scheduled today.</td></tr>{% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="panelhead"><h2>Cancelled KTV reservations</h2></div>
+                    <div class="wrap">
+                        <table>
+                            <thead><tr><th>Guest</th><th>Room and session</th><th>Hours</th><th>Room fee</th><th>Payment</th><th>Cancelled at</th></tr></thead>
+                            <tbody>
+                                {% for booking in ktv_cancellations %}
+                                    <tr>
+                                        <td>{{ booking.name }}<br>{{ booking.email }} · {{ booking.phone }}</td>
+                                        <td>{{ booking.ktv_room }}<br>{{ booking.reservation_date }} at {{ booking.reservation_time }}</td>
+                                        <td>{{ booking.duration_hours }}</td>
+                                        <td>₱{{ booking.ktv_fee|floatformat:2 }}</td>
+                                        <td>{{ booking.food_order.get_payment_status_display|default:"Not checked out" }}</td>
+                                        <td>{{ booking.cancelled_at|date:'M j, Y · g:i A'|default:"—" }}</td>
+                                    </tr>
+                                {% empty %}<tr><td colspan="6">No cancelled KTV reservations.</td></tr>{% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+                {% endif %}
+
+                <!-- Reservations -->
+
+                {% if can_reservations %}
+
+                <section
+                    class="panel"
+                    id="reservations"
+                >
+
+                    <div class="panelhead">
+
+                        <h2>
+                            Reservations
+                        </h2>
+
+                        <span class="tiny">
+                            Guest details for service
+                        </span>
+
+                    </div>
+
+
+                    <div class="wrap">
+
+                        <table>
+
+                            <thead>
+
+                                <tr>
+
+                                    <th>
+                                        Guest
+                                    </th>
+
+                                    <th>
+                                        Date & time
+                                    </th>
+
+                                    <th>
+                                        Party
+                                    </th>
+
+                                    <th>
+                                        Table
+                                    </th>
+
+                                    <th>
+                                        Status
+                                    </th>
+
+                                </tr>
+
+                            </thead>
+
+
+                            <tbody>
+
+                                {% for booking in recent_reservations %}
+
+                                <tr>
+
+                                    <td>
+
+                                        {{ booking.name }}
+
+                                        <br>
+
+                                        <span class="tiny">
+                                            {{ booking.reference }}
+                                        </span>
+
+                                    </td>
+
+                                    <td>
+
+                                        {{ booking.reservation_date }}
+
+                                        <br>
+
+                                        {{ booking.reservation_time|time:'g:i A' }}
+
+                                    </td>
+
+                                    <td>
+                                        {{ booking.guests }}
+                                    </td>
+
+                                    <td>
+                                        {{ booking.table.name|default:'Unassigned' }}
+                                    </td>
+
+                                    <td>
+                                        {{ booking.get_status_display }}
+                                    </td>
+
+                                </tr>
+
+
+                                {% empty %}
+
+                                <tr>
+
+                                    <td
+                                        class="empty"
+                                        colspan="5"
+                                    >
+                                        No reservations.
+                                    </td>
+
+                                </tr>
+
+                                {% endfor %}
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </section>
+
+                {% endif %}
+
+
+                <!-- Inventory -->
+
+                {% if can_inventory %}
+
+                <section
+                    class="panel full"
+                    id="inventory"
+                >
+
+                    <div class="panelhead">
+
+                        <h2>
+                            Inventory
+                        </h2>
+
+                        {% if can_movements %}
+
+                        <a
+                            class="tiny"
+                            href="/admin/restaurant/stockmovement/"
+                        >
+                            Movement history ↗
+                        </a>
+
+                        {% endif %}
+
+                    </div>
+
+
+                    {% if low_stock %}
+
+                    <div class="alert">
+
+                        {{ low_stock.count }}
+                        low or out-of-stock item{{ low_stock.count|pluralize }}
+                        need attention.
+
+                    </div>
+
+                    {% endif %}
+
+
+                    <div class="wrap">
+
+                        <table>
+
+                            <thead>
+
+                                <tr>
+
+                                    <th>
+                                        Ingredient
+                                    </th>
+
+                                    <th>
+                                        On hand
+                                    </th>
+
+                                    <th>
+                                        Threshold
+                                    </th>
+
+                                    <th>
+                                        Stock status
+                                    </th>
+
+                                    {% if can_stock_update %}
+
+                                    <th>
+                                        Record movement
+                                    </th>
+
+                                    {% endif %}
+
+                                </tr>
+
+                            </thead>
+
+
+                            <tbody>
+
+                                {% for item in inventory %}
+
+                                <tr>
+
+                                    <td>
+                                        {{ item.name }}
+                                    </td>
+
+                                    <td>
+                                        {{ item.quantity|floatformat:2 }}
+                                        {{ item.unit }}
+                                    </td>
+
+                                    <td>
+                                        {{ item.low_stock_threshold|floatformat:2 }}
+                                        {{ item.unit }}
+                                    </td>
+
+
+                                    <td>
+
+                                        {% if item.quantity <= 0 %}
+
+                                        <span class="pill red">
+                                            Out of stock
+                                        </span>
+
+                                        {% elif item.quantity <= item.low_stock_threshold %}
+
+                                        <span class="pill">
+                                            Low stock
+                                        </span>
+
+                                        {% else %}
+
+                                        <span class="pill green">
+                                            In stock
+                                        </span>
+
+                                        {% endif %}
+
+                                    </td>
+
+
+                                    {% if can_stock_update %}
+
+                                    <td>
+
+                                        <div class="actions">
+
+                                            <!-- Stock In -->
+
+                                            <form
+                                                class="formrow"
+                                                method="post"
+                                            >
+
+                                                {% csrf_token %}
+
+                                                <input
+                                                    type="hidden"
+                                                    name="action"
+                                                    value="stock_in"
+                                                >
+
+                                                <input
+                                                    type="hidden"
+                                                    name="item_id"
+                                                    value="{{ item.pk }}"
+                                                >
+
+                                                <input
+                                                    type="number"
+                                                    name="quantity"
+                                                    min=".01"
+                                                    step=".01"
+                                                    placeholder="Qty"
+                                                    required
+                                                >
+
+                                                <button class="btn">
+                                                    Stock in
+                                                </button>
+
+                                            </form>
+
+
+                                            <!-- Stock Usage -->
+
+                                            <form
+                                                class="formrow"
+                                                method="post"
+                                            >
+
+                                                {% csrf_token %}
+
+                                                <input
+                                                    type="hidden"
+                                                    name="action"
+                                                    value="stock_usage"
+                                                >
+
+                                                <input
+                                                    type="hidden"
+                                                    name="item_id"
+                                                    value="{{ item.pk }}"
+                                                >
+
+                                                <input
+                                                    type="number"
+                                                    name="quantity"
+                                                    min=".01"
+                                                    step=".01"
+                                                    placeholder="Qty"
+                                                    required
+                                                >
+
+                                                <button class="btn">
+                                                    Usage
+                                                </button>
+
+                                            </form>
+
+                                        </div>
+
+                                    </td>
+
+                                    {% endif %}
+
+                                </tr>
+
+
+                                {% empty %}
+
+                                <tr>
+
+                                    <td
+                                        class="empty"
+                                        colspan="5"
+                                    >
+                                        No inventory items have been added.
+                                    </td>
+
+                                </tr>
+
+                                {% endfor %}
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </section>
+
+                {% endif %}
+
+
+                <!-- Stock Movements -->
+
+                {% include "restaurant/staff_movements.html" %}
+
+
+                <!-- Financial Reports -->
+
+                {% if can_reports %}
+
+                <section class="panel full">
+
+                    <div class="panelhead">
+
+                        <h2>
+                            Financial reports
+                        </h2>
+
+                        <span class="tiny">
+                            Administrator-authorized access
+                        </span>
+
+                    </div>
+
+
+                    <div class="cards">
+
+                        <div class="report">
+
+                            Sales today
+
+                            <strong>
+                                ₱{{ sales_today|floatformat:2 }}
+                            </strong>
+
+                        </div>
+
+
+                        <div class="report">
+
+                            Sales this month
+
+                            <strong>
+                                ₱{{ month_sales|floatformat:2 }}
+                            </strong>
+
+                        </div>
+
+
+                        <div class="report">
+
+                            Sales year to date
+
+                            <strong>
+                                ₱{{ year_sales|floatformat:2 }}
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+                {% endif %}
+
+
+            </div>
+
+        </main>
+
+    </div>
+
+</body>
+
+</html>

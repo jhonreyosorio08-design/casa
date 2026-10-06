@@ -1,1 +1,104 @@
-{% if can_movements %}<section class="panel full"><div class="panelhead"><h2>Recent stock movements</h2><span class="tiny">Read-only audit history</span></div><div class="wrap"><table><thead><tr><th>Ingredient</th><th>Activity</th><th>Quantity</th><th>Recorded</th><th>Note</th></tr></thead><tbody>{% for movement in recent_movements %}<tr><td>{{ movement.item.name }}</td><td>{{ movement.get_kind_display }}</td><td>{{ movement.quantity|floatformat:2 }} {{ movement.item.unit }}</td><td>{{ movement.created_at|date:"M j, g:i A" }}</td><td>{{ movement.note|default:"—" }}</td></tr>{% empty %}<tr><td colspan="5" class="empty">No stock history has been recorded.</td></tr>{% endfor %}</tbody></table></div></section>{% endif %}
+{% if can_movements %}
+
+<section class="panel full">
+
+    <div class="panelhead">
+
+        <h2>
+            Recent stock movements
+        </h2>
+
+        <span class="tiny">
+            Read-only audit history
+        </span>
+
+    </div>
+
+
+    <div class="wrap">
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>
+                        Ingredient
+                    </th>
+
+                    <th>
+                        Activity
+                    </th>
+
+                    <th>
+                        Quantity
+                    </th>
+
+                    <th>
+                        Recorded
+                    </th>
+
+                    <th>
+                        Note
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for movement in recent_movements %}
+
+                <tr>
+
+                    <td>
+                        {{ movement.item.name }}
+                    </td>
+
+                    <td>
+                        {{ movement.get_kind_display }}
+                    </td>
+
+                    <td>
+                        {{ movement.quantity|floatformat:2 }}
+                        {{ movement.item.unit }}
+                    </td>
+
+                    <td>
+                        {{ movement.created_at|date:"M j, g:i A" }}
+                    </td>
+
+                    <td>
+                        {{ movement.note|default:"—" }}
+                    </td>
+
+                </tr>
+
+
+                {% empty %}
+
+                <tr>
+
+                    <td
+                        colspan="5"
+                        class="empty"
+                    >
+                        No stock history has been recorded.
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+{% endif %}

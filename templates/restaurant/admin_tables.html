@@ -1,1 +1,67 @@
-<section class="panel" style="margin-top:14px"><div class="panelhead"><h2>Table status · 1–6</h2><a class="subtle" href="/admin/restaurant/diningtable/">Manage tables ↗</a></div><div class="links">{% for table in tables %}<div class="linkcard"><strong>{{ table.name }}</strong><span>{{ table.seats }} seats · {% if table.occupied %}<em style="color:#a54c3f;font-style:normal">Occupied</em>{% else %}<em style="color:#4e714e;font-style:normal">Available</em>{% endif %}</span></div>{% endfor %}</div></section>
+<section
+    class="panel"
+    style="margin-top: 14px"
+>
+
+    <div class="panelhead">
+
+        <h2>
+            Table status · 1–6
+        </h2>
+
+        <a
+            class="subtle"
+            href="/admin/restaurant/diningtable/"
+        >
+            Manage tables ↗
+        </a>
+
+    </div>
+
+
+    <div class="links">
+
+        {% for table in tables %}
+
+        <div class="linkcard">
+
+            <strong>
+                {{ table.name }}
+            </strong>
+
+            <span>
+                {{ table.seats }} seats ·
+
+                {% if table.occupied %}
+
+                    <em
+                        style="
+                            color: #a54c3f;
+                            font-style: normal;
+                        "
+                    >
+                        Occupied
+                    </em>
+
+                {% else %}
+
+                    <em
+                        style="
+                            color: #4e714e;
+                            font-style: normal;
+                        "
+                    >
+                        Available
+                    </em>
+
+                {% endif %}
+
+            </span>
+
+        </div>
+
+        {% endfor %}
+
+    </div>
+
+</section>

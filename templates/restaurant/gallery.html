@@ -34,124 +34,88 @@
 
         {% for image in gallery %}
 
-        <figure class="mb-5 break-inside-avoid overflow-hidden bg-olive">
+            <figure class="mb-5 break-inside-avoid overflow-hidden bg-olive">
 
-            <div class="overflow-hidden">
-                <img
-                    class="w-full object-cover transition duration-500 hover:scale-105"
-                    src="{{ image.image.url }}"
-                    alt="{{ image.title }}"
-                    loading="lazy"
-                >
-            </div>
+                <div class="overflow-hidden">
+                    <img
+                        class="w-full object-cover transition duration-500 hover:scale-105"
+                        src="{{ image.image.url }}"
+                        alt="{{ image.title }}"
+                        loading="lazy"
+                    >
+                </div>
 
-            <figcaption class="p-4 text-sm text-white">
-                {{ image.caption|default:image.title }}
-            </figcaption>
+                <figcaption class="p-4 text-sm text-white">
+                    {{ image.caption|default:image.title }}
+                </figcaption>
 
-        </figure>
+            </figure>
 
         {% empty %}
 
-        <!-- DEFAULT IMAGE 1 -->
+            <!-- DEFAULT IMAGE 1 -->
 
-        <figure class="mb-5 break-inside-avoid overflow-hidden bg-olive">
+            <figure class="mb-5 break-inside-avoid overflow-hidden bg-olive">
 
-            <div class="overflow-hidden">
-                <img
-                    class="w-full object-cover transition duration-500 hover:scale-105"
-                    src="{% static 'images/9.jpg' %}"
-                    alt="Casa Sonata plated dish"
-                    loading="lazy"
-                >
-            </div>
+                <div class="overflow-hidden">
+                    <img
+                        class="w-full object-cover transition duration-500 hover:scale-105"
+                        src="{% static 'images/9.jpg' %}"
+                        alt="Casa Sonata plated dish"
+                        loading="lazy"
+                    >
+                </div>
 
-            <figcaption class="p-4 text-sm text-white">
-                A dish from the Casa Sonata kitchen
-            </figcaption>
+                <figcaption class="p-4 text-sm text-white">
+                    A dish from the Casa Sonata kitchen
+                </figcaption>
 
-        </figure>
-
-
-        <!-- DEFAULT IMAGE 2 -->
-
-        <figure class="mb-5 break-inside-avoid overflow-hidden bg-olive">
-
-            <div class="overflow-hidden">
-                <img
-                    class="w-full object-cover transition duration-500 hover:scale-105"
-                    src="{% static 'images/10.jpg' %}"
-                    alt="Casa Sonata food presentation"
-                    loading="lazy"
-                >
-            </div>
-
-            <figcaption class="p-4 text-sm text-white">
-                Made for sharing
-            </figcaption>
-
-        </figure>
+            </figure>
 
 
-        <!-- DEFAULT IMAGE 3 -->
+            <!-- DEFAULT IMAGE 2 -->
 
-        <figure class="mb-5 break-inside-avoid overflow-hidden bg-olive">
+            <figure class="mb-5 break-inside-avoid overflow-hidden bg-olive">
 
-            <div class="overflow-hidden">
-                <img
-                    class="w-full object-cover transition duration-500 hover:scale-105"
-                    src="{% static 'images/11.jpg' %}"
-                    alt="Casa Sonata restaurant dish"
-                    loading="lazy"
-                >
-            </div>
+                <div class="overflow-hidden">
+                    <img
+                        class="w-full object-cover transition duration-500 hover:scale-105"
+                        src="{% static 'images/10.jpg' %}"
+                        alt="Casa Sonata food presentation"
+                        loading="lazy"
+                    >
+                </div>
 
-            <figcaption class="p-4 text-sm text-white">
-                From our table
-            </figcaption>
+                <figcaption class="p-4 text-sm text-white">
+                    Made for sharing
+                </figcaption>
 
-        </figure>
+            </figure>
+
+
+            <!-- DEFAULT IMAGE 3 -->
+
+            <figure class="mb-5 break-inside-avoid overflow-hidden bg-olive">
+
+                <div class="overflow-hidden">
+                    <img
+                        class="w-full object-cover transition duration-500 hover:scale-105"
+                        src="{% static 'images/11.jpg' %}"
+                        alt="Casa Sonata restaurant dish"
+                        loading="lazy"
+                    >
+                </div>
+
+                <figcaption class="p-4 text-sm text-white">
+                    From our table
+                </figcaption>
+
+            </figure>
 
         {% endfor %}
 
     </div>
 
-    <figure class="mb-5 break-inside-avoid overflow-hidden bg-olive">
 
-            <div class="overflow-hidden">
-                <img
-                    class="w-full object-cover transition duration-500 hover:scale-105"
-                    src="{% static 'images/20.jpg' %}"
-                    alt="Casa Sonata restaurant dish"
-                    loading="lazy"
-                >
-            </div>
-
-            <figcaption class="p-4 text-sm text-white">
-                From our table
-            </figcaption>
-
-        </figure>
-
-        <figure class="mb-5 break-inside-avoid overflow-hidden bg-olive">
-
-            <div class="overflow-hidden">
-                <img
-                    class="w-full object-cover transition duration-500 hover:scale-105"
-                    src="{% static 'images/21.jpg' %}"
-                    alt="Casa Sonata restaurant dish"
-                    loading="lazy"
-                >
-            </div>
-
-            <figcaption class="p-4 text-sm text-white">
-                From our table
-            </figcaption>
-
-        </figure>
-
-
-
-</section>
 
 {% endblock %}

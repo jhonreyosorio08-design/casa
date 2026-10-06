@@ -1,9 +1,11 @@
 import uuid
+from datetime import datetime, timedelta
 from decimal import Decimal
 
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
+from django.utils.text import slugify
 from django.core.validators import MinValueValidator
 
 
@@ -43,6 +45,86 @@ class GalleryImage(models.Model):
     def __str__(self): return self.title
 
 
+class Event(models.Model):
+    class Category(models.TextChoices):
+        LIVE_MUSIC = "live_music", "Live music"
+        ACOUSTIC = "acoustic", "Acoustic night"
+        DINING = "dining", "Special dining night"
+        HOLIDAY = "holiday", "Holiday celebration"
+        KTV = "ktv", "KTV event"
+        PROMOTION = "promotion", "Food promotion"
+        BIRTHDAY = "birthday", "Birthday event"
+        PRIVATE = "private", "Private gathering"
+        OTHER = "other", "Other"
+
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        PUBLISHED = "published", "Published"
+        ONGOING = "ongoing", "Ongoing"
+        COMPLETED = "completed", "Completed"
+        CANCELLED = "cancelled", "Cancelled"
+
+    class ReservationOption(models.TextChoices):
+        NONE = "none", "No reservation link"
+        TABLE = "table", "Dine-in table"
+        KTV = "ktv", "KTV room"
+        BOTH = "both", "Table and KTV"
+
+    title = models.CharField(max_length=180)
+    slug = models.SlugField(max_length=200, unique=True, blank=True)
+    description = models.TextField()
+    image = models.ImageField(upload_to="events/", blank=True, null=True)
+    event_date = models.DateField()
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    location = models.CharField(max_length=180, default="Casa Sonata")
+    category = models.CharField(max_length=20, choices=Category.choices, default=Category.OTHER)
+    additional_details = models.TextField(blank=True)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.DRAFT)
+    featured = models.BooleanField(default=False)
+    reservation_option = models.CharField(max_length=8, choices=ReservationOption.choices, default=ReservationOption.NONE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["event_date", "start_time", "title"]
+
+    def clean(self):
+        super().clean()
+        if self.start_time and self.end_time and self.end_time <= self.start_time:
+            from django.core.exceptions import ValidationError
+            raise ValidationError({"end_time": "The event end time must be after the start time."})
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base_slug = slugify(self.title) or "event"
+            candidate = base_slug
+            suffix = 2
+            while Event.objects.filter(slug=candidate).exclude(pk=self.pk).exists():
+                candidate = "{}-{}".format(base_slug, suffix)
+                suffix += 1
+            self.slug = candidate
+        super().save(*args, **kwargs)
+
+    @property
+    def display_status(self):
+        if self.status in (self.Status.DRAFT, self.Status.CANCELLED, self.Status.COMPLETED):
+            return self.get_status_display()
+        now = timezone.localtime()
+        if self.event_date < now.date() or (self.event_date == now.date() and self.end_time <= now.time()):
+            return self.Status.COMPLETED.label
+        if self.event_date == now.date() and self.start_time <= now.time() < self.end_time:
+            return self.Status.ONGOING.label
+        return self.get_status_display()
+
+    @property
+    def is_past(self):
+        return self.display_status == self.Status.COMPLETED.label or self.event_date < timezone.localdate()
+
+    def __str__(self):
+        return self.title
+
+
 class SiteContent(models.Model):
     """Editable copy and contact details shared by the public site."""
     restaurant_name = models.CharField(max_length=120, default="Casa Sonata")
@@ -76,6 +158,57 @@ class DiningTable(models.Model):
     def __str__(self): return f"{self.name} ({self.seats} seats)"
 
 
+class KTVRoom(models.Model):
+    class Status(models.TextChoices):
+        AVAILABLE = "available", "Available"
+        RESERVED = "reserved", "Reserved"
+        OCCUPIED = "occupied", "Occupied"
+        COMPLETED = "completed", "Completed"
+
+    name = models.CharField(max_length=40, unique=True)
+    room_type = models.CharField(max_length=40)
+    min_capacity = models.PositiveSmallIntegerField()
+    max_capacity = models.PositiveSmallIntegerField()
+    hourly_price = models.DecimalField(max_digits=8, decimal_places=2)
+    active = models.BooleanField(default=True)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.AVAILABLE)
+
+    class Meta:
+        ordering = ["name"]
+        permissions = [("change_staff_ktv_room_status", "Can update KTV room service status")]
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def current_status_label(self):
+        if self.status in (self.Status.OCCUPIED, self.Status.COMPLETED):
+            return self.get_status_display()
+        now = timezone.localtime()
+        for booking in self.reservations.filter(
+            reservation_date=now.date(),
+            status__in=[Reservation.Status.PENDING, Reservation.Status.PAID, Reservation.Status.CONFIRMED, Reservation.Status.PREPARING, Reservation.Status.READY],
+        ):
+            starts_at = datetime.combine(booking.reservation_date, booking.reservation_time)
+            if timezone.is_naive(starts_at):
+                starts_at = timezone.make_aware(starts_at, timezone.get_current_timezone())
+            ends_at = starts_at + timedelta(hours=booking.duration_hours)
+            if ends_at > now:
+                return "Reserved"
+        return self.get_status_display()
+
+    @property
+    def next_status_choices(self):
+        transitions = {
+            self.Status.AVAILABLE: (self.Status.RESERVED,),
+            self.Status.RESERVED: (self.Status.OCCUPIED,),
+            self.Status.OCCUPIED: (self.Status.COMPLETED,),
+            self.Status.COMPLETED: (self.Status.AVAILABLE,),
+        }
+        allowed = transitions.get(self.status, ())
+        return tuple((value, self.Status(value).label) for value in allowed)
+
+
 class Reservation(models.Model):
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
@@ -95,8 +228,12 @@ class Reservation(models.Model):
     reservation_time = models.TimeField()
     guests = models.PositiveSmallIntegerField()
     table = models.ForeignKey(DiningTable, on_delete=models.PROTECT, related_name="reservations", null=True, blank=True)
+    ktv_room = models.ForeignKey(KTVRoom, on_delete=models.PROTECT, related_name="reservations", null=True, blank=True)
+    duration_hours = models.PositiveSmallIntegerField(default=0)
+    ktv_fee = models.DecimalField(max_digits=9, decimal_places=2, default=0)
     special_requests = models.TextField(blank=True)
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING)
+    cancelled_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -107,6 +244,24 @@ class Reservation(models.Model):
         if not self.reference:
             self.reference = f"CS-{uuid.uuid4().hex[:8].upper()}"
         super().save(*args, **kwargs)
+
+    @property
+    def is_ktv(self):
+        return self.ktv_room_id is not None
+
+    @property
+    def total_amount(self):
+        food_amount = self.food_order.amount if hasattr(self, "food_order") else Decimal("0")
+        return self.ktv_fee + food_amount
+
+    @property
+    def can_cancel_ktv(self):
+        if not self.is_ktv or self.status in (self.Status.CANCELLED, self.Status.COMPLETED):
+            return False
+        starts_at = datetime.combine(self.reservation_date, self.reservation_time)
+        if timezone.is_naive(starts_at):
+            starts_at = timezone.make_aware(starts_at, timezone.get_current_timezone())
+        return timezone.now() < starts_at
 
     def __str__(self): return f"{self.reference} · {self.name}"
 
@@ -150,6 +305,10 @@ class FoodOrder(models.Model):
         return total
 
     def __str__(self): return f"Order {self.reservation.reference}"
+
+    @property
+    def total_amount(self):
+        return self.amount + self.reservation.ktv_fee
 
 
 class InventoryItem(models.Model):
