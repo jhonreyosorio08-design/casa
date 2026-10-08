@@ -10,14 +10,14 @@
         <a class="text-xs font-bold uppercase tracking-widest text-gold" href="{% url 'events' %}">← All events</a>
         <p class="mt-8 text-xs font-bold uppercase tracking-[.3em] text-gold">{{ event.get_category_display }} · {{ event.display_status }}</p>
         <h1 class="mt-4 font-serif text-5xl md:text-6xl">{{ event.title }}</h1>
-        <p class="mt-5 text-lg text-white/70">{{ event.event_date|date:'l, F j, Y' }} · {{ event.start_time|time:'g:i A' }}–{{ event.end_time|time:'g:i A' }}</p>
+        <p class="mt-5 text-lg text-white/70">{{ event.event_date|date:'l, F j, Y' }} · {{ event.start_time|time:'g:i A' }}–{{ event.end_time|time:'g:i A' }}{% if event.ends_next_day %} (next day){% endif %}</p>
     </div>
 </section>
 
 <section class="mx-auto grid max-w-5xl gap-10 px-6 py-12 md:grid-cols-[1.2fr_.8fr]">
     <div>
         {% if event.image %}
-            <img class="mb-8 max-h-[620px] w-full object-cover" src="{{ event.image.url }}" alt="{{ event.title }} poster">
+            <img class="mb-8 max-h-[620px] w-full bg-[#f3f0e8] object-contain" src="{{ event.image.url }}" alt="{{ event.title }} poster">
         {% endif %}
         <div class="whitespace-pre-line leading-8 text-ink/75">{{ event.description }}</div>
         {% if event.additional_details %}
@@ -31,8 +31,8 @@
     <aside class="h-fit border border-ink/15 bg-white p-6">
         <h2 class="font-serif text-2xl">Event information</h2>
         <dl class="mt-5 space-y-4 text-sm">
-            <div><dt class="font-bold uppercase tracking-widest text-ink/50">Date</dt><dd class="mt-1">{{ event.event_date|date:'F j, Y' }}</dd></div>
-            <div><dt class="font-bold uppercase tracking-widest text-ink/50">Time</dt><dd class="mt-1">{{ event.start_time|time:'g:i A' }}–{{ event.end_time|time:'g:i A' }}</dd></div>
+            <div><dt class="font-bold uppercase tracking-widest text-ink/50">Date</dt><dd class="mt-1">{{ event.event_date|date:'F j, Y' }}{% if event.ends_next_day %} to {{ event.event_end_date|date:'F j, Y' }}{% endif %}</dd></div>
+            <div><dt class="font-bold uppercase tracking-widest text-ink/50">Time</dt><dd class="mt-1">{{ event.start_time|time:'g:i A' }}–{{ event.end_time|time:'g:i A' }}{% if event.ends_next_day %} (next day){% endif %}</dd></div>
             <div><dt class="font-bold uppercase tracking-widest text-ink/50">Location</dt><dd class="mt-1">{{ event.location }}</dd></div>
             <div><dt class="font-bold uppercase tracking-widest text-ink/50">Category</dt><dd class="mt-1">{{ event.get_category_display }}</dd></div>
         </dl>

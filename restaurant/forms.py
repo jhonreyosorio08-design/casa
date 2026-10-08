@@ -1,9 +1,11 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import Group, User
+from django.db.models import Q
 from datetime import datetime, timedelta
 from django.utils import timezone
-from .models import DiningTable, KTVRoom, Reservation
+from decimal import Decimal
+from .models import DiningTable, FoodOrder, InventoryItem, KTVRoom, Reservation, StockIn
 
 
 def ktv_slot_available(room, date, start, hours, exclude_booking_id=None):
@@ -63,6 +65,36 @@ class CustomerRegistrationForm(UserCreationForm):
         if commit:
             user.save()
         return user
+
+
+class InventoryItemForm(forms.ModelForm):
+    low_stock_threshold = forms.DecimalField(min_value=Decimal("0"), max_digits=10, decimal_places=2, widget=forms.NumberInput(attrs={"step": "0.01"}))
+    unit_cost = forms.DecimalField(min_value=Decimal("0"), max_digits=10, decimal_places=2, widget=forms.NumberInput(attrs={"step": "0.01"}))
+
+    class Meta:
+        model = InventoryItem
+        fields = ("name", "category", "supplier", "unit", "low_stock_threshold", "unit_cost")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["supplier"].queryset = self.fields["supplier"].queryset.filter(active=True).order_by("name")
+
+
+class StockInForm(forms.ModelForm):
+    class Meta:
+        model = StockIn
+        fields = ("item", "quantity", "supplier", "unit_cost", "received_date", "reference", "notes")
+        widgets = {
+            "quantity": forms.NumberInput(attrs={"min": "0.01", "step": "0.01"}),
+            "unit_cost": forms.NumberInput(attrs={"min": "0", "step": "0.01"}),
+            "received_date": forms.DateInput(attrs={"type": "date"}),
+            "notes": forms.Textarea(attrs={"rows": 3}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["item"].queryset = InventoryItem.objects.order_by("name")
+        self.fields["supplier"].queryset = self.fields["supplier"].queryset.filter(active=True).order_by("name")
 
 
 class StaffAccountForm(UserCreationForm):
@@ -125,26 +157,34 @@ class WalkInReservationForm(forms.Form):
         self.fields["table"].queryset = DiningTable.objects.filter(active=True, occupied=False).exclude(
             reservations__reservation_date=timezone.localdate(), reservations__status__in=active_bookings,
         ).distinct().order_by("name")
-        self.fields["room"].queryset = KTVRoom.objects.filter(active=True, status=KTVRoom.Status.AVAILABLE).order_by("name")
+        now = timezone.localtime()
+        start = now.time().replace(second=0, microsecond=0)
+        try:
+            duration = int(self.data.get("duration_hours") or self.fields["duration_hours"].initial or 2) if self.is_bound else 2
+        except (TypeError, ValueError):
+            duration = 2
+        self.fields["start_time"].initial = start
+        self.fields["start_time"].widget.attrs["readonly"] = True
+        open_rooms = []
+        if 1 <= duration <= 12:
+            for room in KTVRoom.objects.filter(active=True, status__in=(KTVRoom.Status.AVAILABLE, KTVRoom.Status.RESERVED)).order_by("name"):
+                if ktv_slot_available(room, now.date(), start, duration):
+                    open_rooms.append(room.pk)
+        self.fields["room"].queryset = KTVRoom.objects.filter(pk__in=open_rooms).order_by("name")
 
     def clean(self):
         cleaned = super().clean()
         reservation_type = cleaned.get("reservation_type")
-        guests = cleaned.get("guests")
         if reservation_type == "dine_in":
             table = cleaned.get("table")
             if not table:
                 self.add_error("table", "Choose an available table.")
-            elif guests and guests > table.seats:
-                self.add_error("guests", f"{table.name} seats up to {table.seats} guests.")
         elif reservation_type == "ktv":
             room = cleaned.get("room")
             hours = cleaned.get("duration_hours")
             start_time = cleaned.get("start_time")
             if not room:
                 self.add_error("room", "Choose an available KTV room.")
-            elif guests and not room.min_capacity <= guests <= room.max_capacity and not (room.name == "Room A" and guests == 3):
-                self.add_error("guests", f"{room.name} accommodates {room.min_capacity}–{room.max_capacity} guests.")
             if not hours:
                 self.add_error("duration_hours", "Enter the number of KTV hours.")
             if not start_time:
@@ -203,12 +243,117 @@ class ReservationForm(forms.ModelForm):
         guests = cleaned.get("guests")
         if not all((table, date, start, guests)):
             return cleaned
-        if guests > table.seats:
-            self.add_error("guests", f"{table.name} seats up to {table.seats} guests.")
-            return cleaned
         if not dining_slot_available(table, date, start):
             self.add_error("table", f"{table.name} already has a reservation during that two-hour seating window.")
         return cleaned
+
+
+class AdminReservationForm(forms.ModelForm):
+    guests = forms.IntegerField(min_value=1, max_value=32767)
+
+    class Meta:
+        model = Reservation
+        fields = ("name", "email", "phone", "reservation_date", "reservation_time", "guests", "table", "special_requests", "status")
+        widgets = {
+            "reservation_date": forms.DateInput(attrs={"type": "date"}),
+            "reservation_time": forms.TimeInput(attrs={"type": "time", "step": "60"}),
+            "guests": forms.NumberInput(attrs={"min": 1}),
+            "special_requests": forms.Textarea(attrs={"rows": 3}),
+        }
+
+    customer = forms.ModelChoiceField(
+        queryset=User.objects.filter(is_staff=False, is_superuser=False, is_active=True).order_by("username"),
+        required=False,
+        empty_label="Guest without an account",
+    )
+    reservation_type = forms.ChoiceField(choices=(("dine_in", "Dine-In"), ("ktv", "KTV")))
+    ktv_room = forms.ModelChoiceField(queryset=KTVRoom.objects.none(), required=False, label="KTV room")
+    duration_hours = forms.IntegerField(min_value=1, max_value=12, required=False, initial=2, label="KTV hours")
+    payment_method = forms.ChoiceField(
+        choices=(("", "No payment recorded"), ("gcash", "GCash"), ("cash", "Over the Counter")),
+        required=False,
+    )
+    payment_status = forms.ChoiceField(
+        choices=(("", "Not recorded"), ("pending", "Pending"), ("paid", "Paid / verified"), ("rejected", "Rejected"), ("failed", "Failed"), ("refunded", "Refunded")),
+        required=False,
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["guests"].widget.attrs.update({"min": 1})
+        customer_ids = [self.instance.customer_id] if self.instance.pk and self.instance.customer_id else []
+        self.fields["customer"].queryset = User.objects.filter(
+            (Q(is_staff=False, is_superuser=False, is_active=True)) | Q(pk__in=customer_ids)
+        ).order_by("username")
+        self.fields["table"].queryset = DiningTable.objects.filter(active=True).order_by("name")
+        room_ids = [self.instance.ktv_room_id] if self.instance.pk and self.instance.ktv_room_id else []
+        self.fields["ktv_room"].queryset = KTVRoom.objects.filter((Q(active=True) & ~Q(status=KTVRoom.Status.MAINTENANCE)) | Q(pk__in=room_ids)).order_by("name")
+        self.fields["ktv_room"].label_from_instance = lambda room: f"{room.name} — ₱{room.hourly_price}/hour"
+        table_ids = [self.instance.table_id] if self.instance.pk and self.instance.table_id else []
+        self.fields["table"].queryset = DiningTable.objects.filter(Q(active=True) | Q(pk__in=table_ids)).order_by("name")
+        if self.instance.pk:
+            self.fields["customer"].initial = self.instance.customer_id
+            self.fields["reservation_type"].initial = "ktv" if self.instance.ktv_room_id else "dine_in"
+            self.fields["ktv_room"].initial = self.instance.ktv_room_id
+            self.fields["duration_hours"].initial = max(self.instance.duration_hours, 1)
+            try:
+                self.fields["payment_method"].initial = self.instance.food_order.payment_method
+                self.fields["payment_status"].initial = self.instance.food_order.payment_status
+            except FoodOrder.DoesNotExist:
+                pass
+        else:
+            self.fields["status"].initial = Reservation.Status.CONFIRMED
+
+    def clean(self):
+        cleaned = super().clean()
+        booking_type = cleaned.get("reservation_type")
+        date = cleaned.get("reservation_date")
+        start = cleaned.get("reservation_time")
+        if booking_type == "dine_in":
+            table = cleaned.get("table")
+            if not table:
+                self.add_error("table", "Choose a table for a dine-in reservation.")
+            elif date and start and not dining_slot_available(table, date, start, exclude_booking_id=self.instance.pk):
+                self.add_error("table", f"{table.name} already has a reservation during that two-hour seating window.")
+            cleaned["ktv_room"] = None
+            cleaned["duration_hours"] = 0
+        elif booking_type == "ktv":
+            room = cleaned.get("ktv_room")
+            hours = cleaned.get("duration_hours")
+            if not room:
+                self.add_error("ktv_room", "Choose a KTV room.")
+            elif room.status == KTVRoom.Status.MAINTENANCE:
+                self.add_error("ktv_room", f"{room.name} is under maintenance.")
+            if not hours:
+                self.add_error("duration_hours", "Enter the KTV booking length.")
+            if room and date and start and hours and not ktv_slot_available(room, date, start, hours, exclude_booking_id=self.instance.pk):
+                self.add_error("ktv_room", f"{room.name} is already booked during that time.")
+            cleaned["table"] = None
+        customer = cleaned.get("customer")
+        if customer:
+            cleaned["name"] = customer.get_full_name() or customer.username
+            cleaned["email"] = customer.email or cleaned.get("email", "")
+        return cleaned
+
+    def save(self, commit=True):
+        booking = super().save(commit=False)
+        if not booking.pk:
+            booking.source = Reservation.Source.ADMIN
+        booking.customer = self.cleaned_data.get("customer")
+        if self.cleaned_data["reservation_type"] == "ktv":
+            room = self.cleaned_data["ktv_room"]
+            booking.ktv_room = room
+            booking.table = None
+            booking.duration_hours = self.cleaned_data["duration_hours"]
+            booking.ktv_fee = room.hourly_price * booking.duration_hours
+        else:
+            booking.table = self.cleaned_data["table"]
+            booking.ktv_room = None
+            booking.duration_hours = 0
+            booking.ktv_fee = 0
+        if commit:
+            booking.save()
+        return booking
 
 
 class KTVReservationForm(forms.ModelForm):
@@ -240,13 +385,7 @@ class KTVReservationForm(forms.ModelForm):
         date = cleaned.get("reservation_date")
         start = cleaned.get("reservation_time")
         hours = cleaned.get("duration_hours")
-        guests = cleaned.get("guests")
-        if not all((room, date, start, hours, guests)):
-            return cleaned
-        # Room A can be booked by a small party when they specifically select it.
-        # Keep the configured capacity range for all other room/guest combinations.
-        if not room.min_capacity <= guests <= room.max_capacity and not (room.name == "Room A" and guests == 3):
-            self.add_error("guests", f"{room.name} accommodates {room.min_capacity}–{room.max_capacity} guests.")
+        if not all((room, date, start, hours)):
             return cleaned
         start_at = datetime.combine(date, start)
         if timezone.is_naive(start_at):

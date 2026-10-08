@@ -16,7 +16,7 @@
 
     <link
         rel="stylesheet"
-        href="{% static 'css/style.css' %}"
+        href="{% static 'css/style.css' %}?v=notification-modal-view-1"
     >
 
     <style>
@@ -144,6 +144,9 @@
             justify-content: space-between;
             margin-bottom: 22px;
         }
+
+        .top .notification-toggle { color: #344c3e; border-color: #deddd5; background: #fff; }
+        .top .notification-toggle:hover { color: #8b5b25; border-color: #c89558; }
 
         .kicker {
             color: #687962;
@@ -583,7 +586,8 @@
             </div>
 
             <div class="top-actions">
-                <a class="header-link" href="{% url 'notification_center' %}">Notifications{% if dashboard_unread_count %}<span class="count-badge">{{ dashboard_unread_count }}</span>{% endif %}</a>
+                {% include "restaurant/nav_notification_bell.html" %}
+                <a class="subtle" href="{% url 'staff_walkin_payment' %}?service=ktv">New walk-in KTV</a>
                 <details class="profile-menu"><summary>{{ request.user.get_full_name|default:request.user.username }}</summary><div class="profile-popover"><a href="{% url 'account_profile' %}">Profile settings</a><a href="{% url 'admin_module' 'website' %}">Website content</a><span>Administrator</span></div></details>
             </div>
 
@@ -672,6 +676,12 @@
             </article>
 
             <article class="metric">
+                <div class="metriclabel">Admin bookings</div>
+                <div class="metricvalue">₱{{ today_breakdown.admin|floatformat:2 }}</div>
+                <div class="metricnote">Admin-created reservation sales today</div>
+            </article>
+
+            <article class="metric">
                 <div class="metriclabel">Cash payments</div>
                 <div class="metricvalue">₱{{ today_breakdown.cash|floatformat:2 }}</div>
                 <div class="metricnote">Over-the-counter payments today</div>
@@ -698,6 +708,7 @@
                         <th>Sales breakdown</th>
                         <th>Online customers</th>
                         <th>Walk-in customers</th>
+                        <th>Admin bookings</th>
                         <th>GCash</th>
                         <th>Cash</th>
                         <th>Combined total</th>
@@ -709,6 +720,7 @@
                         <td>{{ row.0 }}</td>
                         <td>₱{{ row.1.online|floatformat:2 }}</td>
                         <td>₱{{ row.1.walk_in|floatformat:2 }}</td>
+                        <td>₱{{ row.1.admin|floatformat:2 }}</td>
                         <td>₱{{ row.1.gcash|floatformat:2 }}</td>
                         <td>₱{{ row.1.cash|floatformat:2 }}</td>
                         <td class="net">₱{{ row.1.total|floatformat:2 }}</td>
@@ -1254,6 +1266,18 @@
   document.addEventListener('keydown', event => { if (event.key === 'Escape') closeMenu(); });
 })();
 </script>
+<dialog id="notification-modal" aria-labelledby="notification-modal-title" aria-describedby="notification-modal-message">
+    <div class="notification-modal-content">
+        <div class="notification-modal-heading"><button type="button" class="notification-modal-close" data-notification-modal-close aria-label="Close notification">&#215;</button></div>
+        <h2 id="notification-modal-title"></h2>
+        <div id="notification-modal-message"></div>
+        <time id="notification-modal-date" class="notification-modal-date"></time>
+        <p id="notification-modal-thanks" class="notification-modal-thanks"></p>
+        <a id="notification-modal-link" class="notification-modal-action" href="" hidden>Open task</a>
+        <button type="button" class="notification-modal-action" data-notification-modal-close>Close</button>
+    </div>
+</dialog>
+<script src="{% static 'js/main.js' %}?v=notification-modal-view-1"></script>
 </body>
 
 </html>

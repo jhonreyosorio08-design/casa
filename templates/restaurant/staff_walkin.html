@@ -34,12 +34,12 @@
     </style>
 </head>
 <body>
-<header class="walkin-header"><a class="walkin-brand" href="{% url 'staff_dashboard' %}"><span class="brand-mark">CS</span><span><strong>Casa Sonata</strong><small>Staff workspace</small></span></a><a class="dashboard-link" href="{% url 'staff_dashboard' %}"><span aria-hidden="true">←</span> Staff dashboard</a></header>
+<header class="walkin-header"><a class="walkin-brand" href="{% if request.user.is_superuser %}{% url 'admin_dashboard' %}{% else %}{% url 'staff_dashboard' %}{% endif %}"><span class="brand-mark">CS</span><span><strong>Casa Sonata</strong><small>Staff workspace</small></span></a><a class="dashboard-link" href="{% if request.user.is_superuser %}{% url 'admin_dashboard' %}{% else %}{% url 'staff_dashboard' %}{% endif %}"><span aria-hidden="true">←</span> Staff dashboard</a></header>
 <main>
     <section class="walkin-hero">
         <div><p class="eyebrow">Front of house <span></span> Walk-in customer</p>
         <h1>New walk-in booking</h1>
-        <p class="hero-copy">Create the booking, add the order, and record payment in one place.</p></div>
+        <p class="hero-copy">Create the booking, add an optional KTV food order, and record payment in one place.</p></div>
         <div class="hero-note"><span class="hero-note-icon">+</span><span><strong>Quick checkout</strong><small>Reservation and payment are confirmed together.</small></span></div>
     </section>
     {% if messages %}{% for message in messages %}<div class="message">{{ message }}</div>{% endfor %}{% endif %}
@@ -65,7 +65,7 @@
                     </div>
                     <div id="walkin-ktv-fields" class="fields" style="margin-top:14px" hidden>
                         <label class="field">{{ form.room.label }}{{ form.room }}{% for error in form.room.errors %}<span class="errors">{{ error }}</span>{% endfor %}</label>
-                        <label class="field">{{ form.start_time.label }}{{ form.start_time }}{% for error in form.start_time.errors %}<span class="errors">{{ error }}</span>{% endfor %}</label>
+                        <label class="field">{{ form.start_time.label }}{{ form.start_time }}<small class="muted">Walk-in sessions start at the current time.</small>{% for error in form.start_time.errors %}<span class="errors">{{ error }}</span>{% endfor %}</label>
                         <label class="field">{{ form.duration_hours.label }}{{ form.duration_hours }}{% for error in form.duration_hours.errors %}<span class="errors">{{ error }}</span>{% endfor %}</label>
                         <div class="summary-meta"><span class="muted">Scheduled end time</span><br><strong id="ktv-end-time">—</strong></div>
                     </div>
@@ -116,7 +116,7 @@
                         <label class="field" style="margin-top:12px">{{ form.payment_verified }} {{ form.payment_verified.label }}{% for error in form.payment_verified.errors %}<span class="errors">{{ error }}</span>{% endfor %}</label>
                     </div>
                 </div>
-                <div class="actions"><button class="submit" type="submit">Confirm Walk-In Booking</button><a href="{% url 'staff_dashboard' %}">Cancel and return</a></div>
+                <div class="actions"><button class="submit" type="submit">Confirm Walk-In Booking</button><a href="{% if request.user.is_superuser %}{% url 'admin_dashboard' %}{% else %}{% url 'staff_dashboard' %}{% endif %}">Cancel and return</a></div>
             </aside>
         </div>
     </form>
@@ -157,7 +157,7 @@
     const startInput = document.getElementById('id_start_time');
     const paymentInput = document.getElementById('id_payment_method');
     const cashInput = document.getElementById('id_cash_tendered');
-    const roomRates = JSON.parse(document.getElementById('walkin-room-rates').textContent);
+    let roomRates = JSON.parse(document.getElementById('walkin-room-rates').textContent);
     const money = value => Number(value || 0).toFixed(2);
     const selectedText = select => select?.value ? (select.selectedOptions?.[0]?.textContent?.trim() || '') : '';
     const computeEnd = () => {
@@ -169,6 +169,31 @@
         document.getElementById('summary-start').textContent = startInput.value || '—';
         document.getElementById('summary-end').textContent = end;
         document.getElementById('summary-duration').textContent = duration || '—';
+    };
+    const refreshAvailableRooms = async () => {
+        const duration = Number(durationInput.value) || 2;
+        const previous = roomInput.value;
+        roomInput.disabled = true;
+        try {
+            const response = await fetch(`${window.location.pathname}?availability=1&duration=${encodeURIComponent(duration)}`, {headers: {'X-Requested-With': 'XMLHttpRequest'}});
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Could not refresh KTV room availability.');
+            startInput.value = data.start_time;
+            roomInput.replaceChildren(new Option('Choose an available KTV room', ''));
+            roomRates = {};
+            data.rooms.forEach(room => {
+                roomRates[String(room.id)] = room.rate;
+                roomInput.add(new Option(`${room.name} | ${room.type} | PHP ${room.rate}/hour`, room.id));
+            });
+            if (data.rooms.some(room => String(room.id) === previous)) roomInput.value = previous;
+            else roomInput.value = '';
+            if (!data.rooms.length) roomInput.options[0].textContent = 'No rooms open for this time and duration';
+        } catch (error) {
+            roomInput.replaceChildren(new Option('Could not refresh rooms; reload and try again', ''));
+        } finally {
+            roomInput.disabled = false;
+            refresh();
+        }
     };
     const refresh = () => {
         const isKtv = typeValue() === 'ktv';
@@ -216,7 +241,9 @@
     [...quantities, ...typeInputs].forEach(input => input.addEventListener('input', refresh));
     [tableInput, roomInput, durationInput, startInput, paymentInput, cashInput].forEach(input => input?.addEventListener('input', refresh));
     [tableInput, roomInput, paymentInput].forEach(input => input?.addEventListener('change', refresh));
+    durationInput?.addEventListener('change', refreshAvailableRooms);
     refresh();
+    window.setInterval(() => { if (typeValue() === 'ktv') refreshAvailableRooms(); }, 60000);
 })();
 </script>
 </body>

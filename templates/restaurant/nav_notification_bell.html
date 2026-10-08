@@ -15,7 +15,7 @@
 
         <div class="notification-items" data-notification-items>
             {% for item in nav_notifications.items %}
-            <button type="button" class="notification-item{% if not item.is_read %} is-unread{% endif %}" data-notification-view data-title="{{ item.kind }}" data-message="{{ item.message }}" data-date="{{ item.date }}" data-read="{{ item.is_read|yesno:'true,false' }}">
+            <button type="button" class="notification-item{% if not item.is_read %} is-unread{% endif %}" data-notification-view data-dashboard-notification="{% if user.is_staff or user.is_superuser %}true{% else %}false{% endif %}" data-title="{{ item.kind }}" data-message="{{ item.message }}" data-date="{{ item.date }}" data-url="{{ item.url }}">
                 <span class="notification-kind">{{ item.kind }}</span>
                 <span class="notification-message" title="{{ item.message }}">{{ item.message }}</span>
                 <time>{{ item.date }}</time>

@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reservations · Casa Sonata administration</title>
+  <style>
+    :root{--ink:#222923;--green:#344c3e;--gold:#c89558;--paper:#f4f2ec;--line:#e8e6de;--muted:#72796f}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:14px Arial,sans-serif}header{display:flex;justify-content:space-between;align-items:center;padding:18px clamp(18px,5vw,64px);background:#202722;color:white}header a{color:#e8c89e;text-decoration:none}main{width:min(1400px,95vw);margin:28px auto 60px}h1,h2{font-family:Georgia,serif;font-weight:400}h1{font-size:36px;margin:0}h2{font-size:25px;margin:0 0 6px}.intro{color:var(--muted);margin:8px 0 24px}.columns{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(360px,.9fr);gap:20px;align-items:start}.panel{background:white;border:1px solid var(--line);border-radius:10px;padding:20px;box-shadow:0 4px 16px #20272208}.records{display:grid;gap:12px}.record{border:1px solid var(--line);border-radius:8px;padding:14px}.record-head,.record-actions,.field-grid{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.record-head strong{font-size:15px}.muted,.help{font-size:12px;color:var(--muted)}.status{display:inline-block;padding:5px 9px;border-radius:99px;background:#edf0e9;color:var(--green);font-size:11px;font-weight:bold}.record-actions{justify-content:flex-start;margin-top:12px}.btn,button{display:inline-block;border:0;border-radius:5px;background:var(--green);color:white;padding:9px 12px;font:700 12px Arial,sans-serif;text-decoration:none;cursor:pointer}.btn.secondary{border:1px solid var(--line);background:white;color:var(--green)}.btn.danger{background:#a4493e}.record-actions form{margin:0}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{min-width:0}.field.full{grid-column:1/-1}label{display:block;margin-bottom:5px;font-size:12px;font-weight:bold}input,select,textarea{width:100%;min-height:40px;padding:9px;border:1px solid #cfcfc7;border-radius:5px;background:white;color:var(--ink);font:inherit}input[type=date],input[type=time]{cursor:pointer;accent-color:var(--green)}textarea{resize:vertical}.errorlist,.error{color:#a33d34;font-size:12px}.nonfield{margin-bottom:12px;padding:10px;background:#fff0ed;border-radius:5px}.menu-list{max-height:230px;overflow:auto;border:1px solid var(--line);border-radius:6px;padding:4px 10px}.menu-row{display:grid;grid-template-columns:1fr auto 76px;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid #f0eee8}.menu-row:last-child{border-bottom:0}.menu-row input{min-height:34px;padding:5px}.summary{margin-top:12px;padding:12px;background:#f8f6f0;border-radius:6px;font-weight:bold}.messages{margin:0 0 15px}.message{margin:5px 0;padding:11px 13px;border-radius:5px;background:#e7efe4}.empty{padding:30px;text-align:center;color:var(--muted)}.type-dine,.type-ktv{display:none}.type-dine.active,.type-ktv.active{display:block}.section-label{grid-column:1/-1;margin:5px 0 0;padding-top:12px;border-top:1px solid var(--line);font:18px Georgia,serif}@media(max-width:900px){.columns{grid-template-columns:1fr}}@media(max-width:500px){.form-grid{grid-template-columns:1fr}.field.full,.section-label{grid-column:auto}header{align-items:flex-start;gap:8px;flex-direction:column}.menu-row{grid-template-columns:1fr 70px}.menu-row .price{display:none}}
+  </style>
+</head>
+<body>
+  <header><strong>Casa Sonata · Administrator</strong><a href="{% url 'admin_dashboard' %}">Return to dashboard</a></header>
+  <main>
+    <a class="muted" href="{% url 'admin_dashboard' %}">← Dashboard</a>
+    <h1>Reservation management</h1>
+    <p class="intro">Create and manage dine-in and KTV reservations, orders, and recorded payments.</p>
+    {% if messages %}<div class="messages">{% for message in messages %}<p class="message">{{ message }}</p>{% endfor %}</div>{% endif %}
+    <div class="columns">
+      <section class="panel">
+        <div class="record-head"><h2>All reservations</h2><span class="muted">{{ records|length }} shown</span></div>
+        <div class="records">
+          {% for record in records %}
+          <article class="record">
+            <div class="record-head"><strong>{{ record.reference }} · {{ record.name }}</strong><span class="status">{{ record.get_status_display }}</span></div>
+            <p class="muted">{{ record.get_source_display }} · {{ record.reservation_date|date:'M j, Y' }} at {{ record.reservation_time|time:'g:i A' }} · {{ record.guests }} guest{{ record.guests|pluralize }} · {% if record.ktv_room %}{{ record.ktv_room.name }}{% else %}{{ record.table.name|default:'Table not assigned' }}{% endif %}</p>
+            <p class="muted">{% if record.customer %}Account: {{ record.customer.get_full_name|default:record.customer.username }}{% else %}Guest booking{% endif %}{% if record.food_order %} · Order: ₱{{ record.food_order.total_amount|floatformat:2 }} · {{ record.food_order.get_payment_status_display }}{% endif %}</p>
+            <div class="record-actions">
+              <a class="btn secondary" href="{% url 'admin_module_edit' 'reservations' record.pk %}">Edit</a>
+              {% if record.food_order %}<a class="btn secondary" href="{% url 'admin_receipt' record.food_order.pk %}">Receipt</a>{% endif %}
+              {% if record.status == 'pending' or record.status == 'paid' or record.status == 'rejected' or record.status == 'cancelled' %}<form method="post">{% csrf_token %}<input type="hidden" name="action" value="confirm"><input type="hidden" name="reservation_id" value="{{ record.pk }}"><button type="submit">Confirm</button></form>{% endif %}
+              {% if record.status != 'cancelled' and record.status != 'completed' %}<form method="post" onsubmit="return confirm('Cancel reservation {{ record.reference }}?')">{% csrf_token %}<input type="hidden" name="action" value="cancel"><input type="hidden" name="reservation_id" value="{{ record.pk }}"><button class="danger" type="submit">Cancel</button></form>{% endif %}
+            </div>
+          </article>
+          {% empty %}<p class="empty">No reservations have been created.</p>{% endfor %}
+        </div>
+      </section>
+
+      <section class="panel" id="reservation-form">
+        <h2>{% if editing %}Edit reservation{% else %}Create reservation{% endif %}</h2>
+        <p class="help">Availability is checked when you save. Food totals and KTV room fees are calculated automatically.</p>
+        <form method="post" id="admin-reservation-form">{% csrf_token %}
+          {% if form.non_field_errors %}<div class="nonfield">{{ form.non_field_errors }}</div>{% endif %}
+          <div class="form-grid">
+            <div class="field full"><label for="{{ form.customer.id_for_label }}">Customer account (optional)</label>{{ form.customer }}{{ form.customer.errors }}</div>
+            <div class="field"><label for="{{ form.name.id_for_label }}">Guest name</label>{{ form.name }}{{ form.name.errors }}</div>
+            <div class="field"><label for="{{ form.phone.id_for_label }}">Phone</label>{{ form.phone }}{{ form.phone.errors }}</div>
+            <div class="field full"><label for="{{ form.email.id_for_label }}">Email</label>{{ form.email }}{{ form.email.errors }}</div>
+            <div class="field"><label for="{{ form.reservation_type.id_for_label }}">Reservation type</label>{{ form.reservation_type }}{{ form.reservation_type.errors }}</div>
+            <div class="field"><label for="{{ form.guests.id_for_label }}">Guests</label>{{ form.guests }}{{ form.guests.errors }}</div>
+            <div class="field"><label for="{{ form.reservation_date.id_for_label }}">Date</label>{{ form.reservation_date }}{{ form.reservation_date.errors }}</div>
+            <div class="field"><label for="{{ form.reservation_time.id_for_label }}">Time</label>{{ form.reservation_time }}{{ form.reservation_time.errors }}</div>
+            <div class="field full type-dine"><label for="{{ form.table.id_for_label }}">Table</label>{{ form.table }}{{ form.table.errors }}</div>
+            <div class="field type-ktv"><label for="{{ form.ktv_room.id_for_label }}">KTV room</label>{{ form.ktv_room }}{{ form.ktv_room.errors }}</div>
+            <div class="field type-ktv"><label for="{{ form.duration_hours.id_for_label }}">KTV hours</label>{{ form.duration_hours }}{{ form.duration_hours.errors }}</div>
+            <div class="field full"><label for="{{ form.special_requests.id_for_label }}">Special requests</label>{{ form.special_requests }}{{ form.special_requests.errors }}</div>
+            <div class="field full"><label for="{{ form.status.id_for_label }}">Reservation status</label>{{ form.status }}{{ form.status.errors }}</div>
+            <h3 class="section-label">Food order (optional)</h3>
+            <div class="field"><label for="{{ form.payment_method.id_for_label }}">Payment method</label>{{ form.payment_method }}{{ form.payment_method.errors }}</div>
+            <div class="field"><label for="{{ form.payment_status.id_for_label }}">Payment status</label>{{ form.payment_status }}{{ form.payment_status.errors }}</div>
+            <div class="field full"><label>Menu items and quantities</label><div class="menu-list">
+              {% for row in menu_rows %}<div class="menu-row"><span>{{ row.item.name }} <small class="muted">{{ row.item.category.name }}</small></span><span class="price">₱{{ row.item.price|floatformat:2 }}</span><input type="number" name="item_{{ row.item.pk }}" min="0" max="99" step="1" value="{{ row.quantity }}" data-menu-price="{{ row.item.price }}" aria-label="Quantity for {{ row.item.name }}"></div>{% empty %}<p class="help">No menu items are available.</p>{% endfor %}
+            </div><div class="summary">Estimated total: <span id="estimated-total">₱0.00</span><span class="help"> KTV fee plus selected food items</span></div></div>
+            <div class="field full"><button type="submit">{% if editing %}Save reservation{% else %}Create reservation{% endif %}</button>{% if editing %} <a class="btn secondary" href="{% url 'admin_module' 'reservations' %}">Cancel edit</a>{% endif %}</div>
+          </div>
+        </form>
+      </section>
+    </div>
+  </main>
+  <script>
+    const typeSelect = document.getElementById('{{ form.reservation_type.id_for_label }}');
+    const updateTypeFields = () => {
+      const isKtv = typeSelect.value === 'ktv';
+      document.querySelectorAll('.type-ktv').forEach(el => el.classList.toggle('active', isKtv));
+      document.querySelectorAll('.type-dine').forEach(el => el.classList.toggle('active', !isKtv));
+    };
+    typeSelect.addEventListener('change', updateTypeFields);
+    updateTypeFields();
+    const total = document.getElementById('estimated-total');
+    const updateTotal = () => {
+      let value = 0;
+      document.querySelectorAll('[data-menu-price]').forEach(input => { value += (Number(input.value) || 0) * Number(input.dataset.menuPrice); });
+      const room = document.getElementById('{{ form.ktv_room.id_for_label }}');
+      const hours = Number(document.getElementById('{{ form.duration_hours.id_for_label }}').value) || 0;
+      if (typeSelect.value === 'ktv' && room.selectedOptions[0]) value += (Number(room.selectedOptions[0].dataset.hourlyPrice) || 0) * hours;
+      total.textContent = `₱${value.toFixed(2)}`;
+    };
+    document.querySelectorAll('[data-menu-price],#{{ form.ktv_room.id_for_label }},#{{ form.duration_hours.id_for_label }}').forEach(el => el.addEventListener('input', updateTotal));
+    document.querySelectorAll('#{{ form.ktv_room.id_for_label }} option').forEach(option => { const match = option.textContent.match(/₱([\d,.]+)/); if (match) option.dataset.hourlyPrice = match[1].replaceAll(',', ''); });
+    updateTotal();
+  </script>
+</body>
+</html>

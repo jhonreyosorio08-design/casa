@@ -1,10 +1,26 @@
+import re
+
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateformat import format as format_date
 
 from django.contrib.auth import get_user_model
 
-from .models import CustomerNotification, DashboardNotification, StockAlert
+from .models import CustomerNotification, DashboardNotification, Reservation, StockAlert
+
+
+def operational_notification_url(user, message, fallback=""):
+    reference = re.search(r"\bCS-[A-F0-9]{8}\b", message.upper())
+    if not reference:
+        return fallback
+    booking = Reservation.objects.filter(reference=reference.group()).only("pk").first()
+    if not booking:
+        return fallback
+    if user.is_superuser:
+        return reverse("admin_module_edit", args=("reservations", booking.pk))
+    if user.is_staff and (user.has_perm("restaurant.view_staff_reservations") or user.groups.filter(name__in=("Cashier", "Kitchen Staff")).exists()):
+        return reverse("staff_reservation_detail", args=(booking.pk,))
+    return fallback
 
 
 def notify_operations(audiences, kind, message):
@@ -18,8 +34,24 @@ def notify_operations(audiences, kind, message):
         admins = recipients.filter(is_superuser=True)
     else:
         admins = recipients.none()
+    lower_kind = kind.lower()
+    if "payment" in lower_kind or "gcash" in lower_kind:
+        staff_url, admin_url = reverse("staff_dashboard") + "#payments", reverse("admin_payments")
+    elif "order" in lower_kind or "walk-in" in lower_kind:
+        staff_url, admin_url = reverse("staff_dashboard") + "#orders", reverse("admin_module", args=("orders",))
+    elif "ktv" in lower_kind:
+        staff_url, admin_url = reverse("staff_dashboard") + "#ktv", reverse("admin_dashboard") + "#admin-ktv"
+    elif "table" in lower_kind:
+        staff_url, admin_url = reverse("staff_dashboard") + "#tables", reverse("admin_dashboard") + "#admin-tables"
+    elif "inventory" in lower_kind or "stock" in lower_kind:
+        staff_url, admin_url = reverse("staff_dashboard") + "#inventory", reverse("admin_dashboard") + "#inventory-attention"
+    else:
+        staff_url, admin_url = reverse("staff_dashboard") + "#reservations", reverse("admin_module", args=("reservations",))
     notifications = [
-        DashboardNotification(recipient=user, kind=kind, message=message)
+        DashboardNotification(
+            recipient=user, kind=kind, message=message,
+            url=operational_notification_url(user, message, admin_url if user.is_superuser else staff_url),
+        )
         for user in (staff | admins).distinct()
     ]
     DashboardNotification.objects.bulk_create(notifications)

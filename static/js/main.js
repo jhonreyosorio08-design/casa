@@ -67,6 +67,95 @@ if (typingPhrases.length) {
 }
 
 const loginModal = document.getElementById('login-modal');
+const loginPanel = loginModal?.querySelector('[data-login-panel]');
+const signupPanel = loginModal?.querySelector('[data-signup-panel]');
+const setAccountModalMode = mode => {
+  if (!loginPanel || !signupPanel) return;
+  const signingUp = mode === 'signup';
+  loginPanel.hidden = signingUp;
+  signupPanel.hidden = !signingUp;
+  const error = document.getElementById(signingUp ? 'modal-signup-error' : 'modal-login-error');
+  if (error) { error.hidden = true; error.textContent = ''; }
+  (signingUp ? document.getElementById('signup-username') : document.getElementById('modal-username'))?.focus();
+};
+document.querySelectorAll('.js-show-signup, .js-open-signup').forEach(button => {
+  button.addEventListener('click', () => {
+    setAccountModalMode('signup');
+    if (loginModal && !loginModal.open) loginModal.showModal();
+    mobile?.classList.add('hidden');
+    toggle?.setAttribute('aria-expanded', 'false');
+    toggle?.setAttribute('aria-label', 'Open menu');
+  });
+});
+document.querySelectorAll('.js-show-login, .js-open-login').forEach(button => {
+  button.addEventListener('click', () => setAccountModalMode('login'));
+});
+if (loginModal?.dataset.initialMode === 'signup') {
+  setAccountModalMode('signup');
+  loginModal.showModal();
+}
+const modalLoginForm = loginModal?.querySelector('form');
+const modalLoginError = document.getElementById('modal-login-error');
+modalLoginForm?.addEventListener('submit', async event => {
+  event.preventDefault();
+  if (modalLoginError) {
+    modalLoginError.hidden = true;
+    modalLoginError.textContent = '';
+  }
+  const submitButton = modalLoginForm.querySelector('button[type="submit"]');
+  if (submitButton) submitButton.disabled = true;
+  try {
+    const response = await fetch(modalLoginForm.action, {
+      method: 'POST',
+      body: new FormData(modalLoginForm),
+      credentials: 'same-origin',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    });
+    if (response.redirected) {
+      window.location.assign(response.url);
+      return;
+    }
+    const result = await response.json();
+    if (modalLoginError) {
+      modalLoginError.textContent = result.error || 'Unable to log in. Please try again.';
+      modalLoginError.hidden = false;
+    }
+    document.getElementById('modal-password')?.focus();
+  } catch {
+    if (modalLoginError) {
+      modalLoginError.textContent = 'Unable to log in right now. Please try again.';
+      modalLoginError.hidden = false;
+    }
+  } finally {
+    if (submitButton) submitButton.disabled = false;
+  }
+});
+const signupForm = loginModal?.querySelector('[data-signup-form]');
+const signupError = document.getElementById('modal-signup-error');
+signupForm?.addEventListener('submit', async event => {
+  event.preventDefault();
+  if (signupError) { signupError.hidden = true; signupError.textContent = ''; }
+  const submitButton = signupForm.querySelector('button[type="submit"]');
+  if (submitButton) submitButton.disabled = true;
+  try {
+    const response = await fetch(signupForm.action, {
+      method: 'POST',
+      body: new FormData(signupForm),
+      credentials: 'same-origin',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    });
+    const result = await response.json();
+    if (!response.ok || !result.success) throw new Error(result.error || 'Unable to create your account. Please try again.');
+    window.location.assign(result.redirect || window.location.href);
+  } catch (error) {
+    if (signupError) {
+      signupError.textContent = error.message || 'Unable to create your account right now. Please try again.';
+      signupError.hidden = false;
+    }
+  } finally {
+    if (submitButton) submitButton.disabled = false;
+  }
+});
 document.querySelectorAll('.js-open-login').forEach(button => {
   button.addEventListener('click', () => {
     mobile?.classList.add('hidden');
@@ -95,8 +184,16 @@ document.addEventListener('click', event => {
   const thanks = document.getElementById('notification-modal-thanks');
   const body = trigger.dataset.message || '';
   const preparing = body.match(/Reservation\s+([A-Z0-9-]+)\s+is now preparing\.?/i);
+  const isOperational = trigger.dataset.dashboardNotification === 'true';
+  const taskLink = document.getElementById('notification-modal-link');
+  const date = document.getElementById('notification-modal-date');
   message.replaceChildren();
-  if (preparing) {
+  if (taskLink) {
+    taskLink.hidden = !isOperational || !trigger.dataset.url;
+    if (isOperational && trigger.dataset.url) taskLink.href = trigger.dataset.url;
+  }
+  if (date) date.textContent = trigger.dataset.date || '';
+  if (preparing && !isOperational) {
     title.textContent = 'Your reservation is being prepared';
     const reservation = document.createElement('p');
     reservation.append('Reservation ');
@@ -104,13 +201,13 @@ document.addEventListener('click', event => {
     reference.textContent = preparing[1];
     reservation.append(reference, ' has been accepted and is now being prepared by our team. We’ll notify you once everything is ready for your visit.');
     message.append(reservation);
-    thanks.textContent = 'Thank you for choosing Casa Sonata. We look forward to welcoming you!';
+    if (thanks) thanks.textContent = 'Thank you for choosing Casa Sonata. We look forward to welcoming you!';
   } else {
     title.textContent = trigger.dataset.title || 'Notification';
     const paragraph = document.createElement('p');
     paragraph.textContent = body;
     message.append(paragraph);
-    thanks.textContent = 'Thank you for choosing Casa Sonata.';
+    if (thanks) thanks.textContent = isOperational ? '' : 'Thank you for choosing Casa Sonata.';
   }
   trigger.closest('.notification-menu')?.removeAttribute('open');
   notificationModal.showModal();
@@ -166,10 +263,11 @@ if (notificationMenus.length) {
           button.type = 'button';
           button.className = `notification-item${item.is_read ? '' : ' is-unread'}`;
           button.dataset.notificationView = '';
+          button.dataset.dashboardNotification = String(Boolean(data.is_operational));
           button.dataset.title = item.kind || 'Notification';
           button.dataset.message = item.message || '';
           button.dataset.date = item.date || '';
-          button.dataset.read = String(Boolean(item.is_read));
+          button.dataset.url = safeHref(item.url || data.footer_url);
           const kind = document.createElement('span');
           kind.className = 'notification-kind';
           kind.textContent = item.kind || 'Notification';

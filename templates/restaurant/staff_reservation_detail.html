@@ -1,0 +1,28 @@
+{% extends 'restaurant/base.html' %}
+{% block title %}Reservation {{ booking.reference }} | Casa Sonata{% endblock %}
+{% block content %}
+<main class="min-h-[65vh] bg-cream px-5 pb-20 pt-32 sm:px-8">
+  <div class="mx-auto max-w-4xl">
+    <a class="text-sm font-semibold text-olive underline" href="{% url 'staff_dashboard' %}#reservations">← Back to staff reservations</a>
+    <section class="mt-5 rounded-xl bg-white p-6 shadow-sm sm:p-9">
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <div><p class="text-xs font-bold uppercase tracking-[.2em] text-clay">{{ booking.get_source_display }} reservation</p><h1 class="mt-2 font-serif text-4xl">{{ booking.reference }}</h1><p class="mt-2 text-sm text-ink/60">{{ booking.get_status_display }}</p></div>
+        <span class="rounded-full bg-olive/10 px-3 py-2 text-sm font-semibold text-olive">{{ booking.reservation_date|date:'M j, Y' }} · {{ booking.reservation_time|time:'g:i A' }}</span>
+      </div>
+      <dl class="mt-8 grid gap-x-8 gap-y-5 border-t border-ink/10 pt-6 sm:grid-cols-2">
+        <div><dt class="text-xs font-bold uppercase tracking-widest text-ink/50">Guest</dt><dd class="mt-1">{{ booking.name }}</dd></div>
+        <div><dt class="text-xs font-bold uppercase tracking-widest text-ink/50">Party size</dt><dd class="mt-1">{{ booking.guests }} guests</dd></div>
+        <div><dt class="text-xs font-bold uppercase tracking-widest text-ink/50">Email</dt><dd class="mt-1">{{ booking.email|default:'Not provided' }}</dd></div>
+        <div><dt class="text-xs font-bold uppercase tracking-widest text-ink/50">Phone</dt><dd class="mt-1">{{ booking.phone }}</dd></div>
+        <div><dt class="text-xs font-bold uppercase tracking-widest text-ink/50">Table / room</dt><dd class="mt-1">{% if booking.ktv_room %}{{ booking.ktv_room.name }} · {{ booking.duration_hours }} hours{% else %}{{ booking.table.name|default:'Not assigned' }}{% endif %}</dd></div>
+        {% if booking.special_requests %}<div class="sm:col-span-2"><dt class="text-xs font-bold uppercase tracking-widest text-ink/50">Special requests</dt><dd class="mt-1 whitespace-pre-line">{{ booking.special_requests }}</dd></div>{% endif %}
+      </dl>
+    </section>
+
+    {% if order %}<section class="mt-6 rounded-xl bg-white p-6 shadow-sm sm:p-9"><div class="flex flex-wrap justify-between gap-3"><h2 class="font-serif text-2xl">Related order and payment</h2><span class="text-sm font-semibold">{{ order.get_order_status_display }}{% if can_view_payments %} · {{ order.get_payment_status_display }}{% endif %}</span></div>
+      <ul class="mt-4 divide-y divide-ink/10">{% for item in order.items.all %}<li class="flex justify-between gap-4 py-3"><span>{{ item.quantity }} × {{ item.name }}</span><span>₱{{ item.line_total|floatformat:2 }}</span></li>{% empty %}<li class="py-3 text-sm text-ink/55">No food items.</li>{% endfor %}</ul>
+      {% if can_view_payments %}<p class="mt-4 border-t border-ink/10 pt-4 text-sm">Method: {{ order.get_payment_method_display }} · Total: ₱{{ order.total_amount|floatformat:2 }}{% if order.gateway_reference %} · Reference: {{ order.gateway_reference }}{% endif %}</p>{% endif %}
+    </section>{% endif %}
+  </div>
+</main>
+{% endblock %}

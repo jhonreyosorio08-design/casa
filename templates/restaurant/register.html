@@ -1,88 +1,9 @@
 {% extends 'restaurant/base.html' %}
 
-{% block title %}
-    Create account | Casa Sonata
-{% endblock %}
-
+{% block title %}Sign up | Casa Sonata{% endblock %}
 
 {% block content %}
-
-<section class="mx-auto max-w-xl px-6 pb-20 pt-40">
-
-    <p class="text-xs font-bold uppercase tracking-[.3em] text-gold">
-        Customer account
-    </p>
-
-    <h1 class="mt-4 font-serif text-5xl">
-        Create your account
-    </h1>
-
-    <p class="mt-4 text-ink/70">
-        Sign up to reserve a table and order food in advance.
-    </p>
-
-
-    <form
-        method="post"
-        class="mt-8 space-y-5"
-    >
-
-        {% csrf_token %}
-
-
-        {% for field in form %}
-
-        <div>
-
-            <label
-                class="mb-2 block text-sm font-semibold"
-                for="{{ field.id_for_label }}"
-            >
-                {{ field.label }}
-            </label>
-
-            {{ field }}
-
-
-            {% if field.help_text %}
-
-            <div class="mt-1 text-xs text-ink/60">
-                {{ field.help_text|safe }}
-            </div>
-
-            {% endif %}
-
-
-            {{ field.errors }}
-
-        </div>
-
-        {% endfor %}
-
-
-        <button
-            class="bg-gold px-7 py-4 text-xs font-bold uppercase tracking-widest text-white"
-            type="submit"
-        >
-            Create account
-        </button>
-
-    </form>
-
-
-    <p class="mt-6 text-sm">
-
-        Already registered?
-
-        <a
-            class="text-clay underline"
-            href="{% url 'login' %}"
-        >
-            Log in
-        </a>
-
-    </p>
-
+<section class="mx-auto max-w-xl px-6 pb-20 pt-40 text-center">
+    <p class="text-ink/70">Use the sign-up dialog to create your Casa Sonata account.</p>
 </section>
-
 {% endblock %}

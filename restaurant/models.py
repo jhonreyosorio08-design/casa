@@ -91,9 +91,24 @@ class Event(models.Model):
 
     def clean(self):
         super().clean()
-        if self.start_time and self.end_time and self.end_time <= self.start_time:
-            from django.core.exceptions import ValidationError
-            raise ValidationError({"end_time": "The event end time must be after the start time."})
+
+    @property
+    def ends_next_day(self):
+        return bool(self.start_time and self.end_time and self.end_time <= self.start_time)
+
+    @property
+    def event_end_date(self):
+        return self.event_date + timedelta(days=1 if self.ends_next_day else 0)
+
+    @property
+    def event_start_at(self):
+        starts_at = datetime.combine(self.event_date, self.start_time)
+        return timezone.make_aware(starts_at, timezone.get_current_timezone()) if timezone.is_naive(starts_at) else starts_at
+
+    @property
+    def event_end_at(self):
+        ends_at = datetime.combine(self.event_end_date, self.end_time)
+        return timezone.make_aware(ends_at, timezone.get_current_timezone()) if timezone.is_naive(ends_at) else ends_at
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -110,16 +125,16 @@ class Event(models.Model):
     def display_status(self):
         if self.status in (self.Status.DRAFT, self.Status.CANCELLED, self.Status.COMPLETED):
             return self.get_status_display()
-        now = timezone.localtime()
-        if self.event_date < now.date() or (self.event_date == now.date() and self.end_time <= now.time()):
+        now = timezone.now()
+        if now >= self.event_end_at:
             return self.Status.COMPLETED.label
-        if self.event_date == now.date() and self.start_time <= now.time() < self.end_time:
+        if self.event_start_at <= now < self.event_end_at:
             return self.Status.ONGOING.label
         return self.get_status_display()
 
     @property
     def is_past(self):
-        return self.display_status == self.Status.COMPLETED.label or self.event_date < timezone.localdate()
+        return self.display_status == self.Status.COMPLETED.label or self.event_end_date < timezone.localdate()
 
     def __str__(self):
         return self.title
@@ -237,6 +252,7 @@ class Reservation(models.Model):
     class Source(models.TextChoices):
         ONLINE = "online", "Online"
         WALK_IN = "walk_in", "Walk-In"
+        ADMIN = "admin", "Admin"
 
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"

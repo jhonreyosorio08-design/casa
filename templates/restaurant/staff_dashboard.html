@@ -16,7 +16,7 @@
 
     <link
         rel="stylesheet"
-        href="{% static 'css/style.css' %}"
+        href="{% static 'css/style.css' %}?v=notification-modal-view-1"
     >
 
     <style>
@@ -150,6 +150,8 @@
         }
 
         .top-actions { display:flex; align-items:center; gap:9px; flex-wrap:wrap; }
+        .top .notification-toggle { color:#344c3e; border-color:#deddd5; background:#fff; }
+        .top .notification-toggle:hover { color:#8b5b25; border-color:#c89558; }
         .mobile-menu { display:none; border:1px solid #d9d8ce; background:#fff; color:#26382f; padding:9px 11px; border-radius:7px; font-weight:700; cursor:pointer; }
         .header-link { position:relative; border:1px solid #deddd5; background:#fff; color:#344c3e; padding:9px 12px; border-radius:99px; text-decoration:none; font-size:11px; font-weight:700; }
         .count-badge { display:inline-grid; place-items:center; min-width:18px; height:18px; margin-left:4px; border-radius:99px; background:#b35d4b; color:#fff; font-size:10px; }
@@ -356,6 +358,27 @@
         .ktv-session-status.active { background: #e9f1e8; color: #4e714e; }
         .extension-form { display: flex; flex-wrap: wrap; gap: 5px; min-width: 190px; }
         .extension-form input { width: 78px; padding: 6px; font-size: 11px; }
+        .ktv-schedule-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,390px),1fr)); gap:14px; }
+        .ktv-booking-card { min-width:0; padding:17px; border:1px solid #e8e7df; border-radius:11px; background:linear-gradient(145deg,#fff 60%,#f8f7f2); box-shadow:0 3px 12px #26382f08; }
+        .ktv-booking-head,.ktv-booking-room,.ktv-booking-meta { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+        .ktv-booking-head { align-items:flex-start; margin-bottom:13px; }
+        .ktv-booking-name { font:18px Georgia,serif; color:#26382f; }
+        .ktv-booking-room { justify-content:flex-start; color:#68736a; font-size:12px; margin-bottom:13px; }
+        .ktv-time-row { display:grid; grid-template-columns:1fr auto 1fr; gap:8px; padding:13px; border-radius:9px; background:#f4f3ed; }
+        .ktv-time-block { min-width:0; }
+        .ktv-time-block.end { text-align:right; }
+        .ktv-time-label { display:block; margin-bottom:4px; color:#81877f; font-size:9px; letter-spacing:.1em; text-transform:uppercase; }
+        .ktv-time-value { color:#26382f; font-size:17px; font-weight:700; white-space:nowrap; }
+        .ktv-time-date { display:block; margin-top:3px; color:#81877f; font-size:10px; }
+        .ktv-time-arrow { color:#a8895d; font-size:18px; }
+        .ktv-duration { display:inline-block; margin-top:10px; padding:6px 9px; border-radius:6px; background:#e9f1e8; color:#425c45; font-size:11px; font-weight:700; }
+        .ktv-live-timer { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:12px; padding:12px 13px; border:1px solid #e8e7df; border-radius:8px; }
+        .ktv-live-timer .ktv-countdown { color:#26382f; font-size:14px; font-weight:700; text-align:right; }
+        .ktv-booking-meta { align-items:flex-start; flex-wrap:wrap; margin-top:12px; color:#68736a; font-size:11px; }
+        .ktv-booking-meta > span { min-width:120px; }
+        .ktv-extension { margin-top:12px; padding-top:12px; border-top:1px solid #efeee8; }
+        .ktv-extension .extension-form { min-width:0; }
+        .ktv-extension .extension-form input { flex:1 1 86px; min-width:0; width:auto; }
 
         .btn {
             border: 0;
@@ -618,7 +641,6 @@
 
             {% endif %}
 
-            {% if can_reservations %}<a class="nav" href="#reservations">Reservations</a>{% endif %}
 
 
             {% if can_payments %}
@@ -660,9 +682,9 @@
 
             <a
                 class="nav"
-                href="#inventory"
+                href="{% url 'staff_inventory_dashboard' %}"
             >
-                Inventory
+                Inventory workspace
             </a>
 
             {% endif %}
@@ -719,7 +741,7 @@
                 </div>
 
                 <div class="top-actions">
-                    <a class="header-link" href="{% url 'notification_center' %}">Notifications{% if dashboard_unread_count %}<span class="count-badge">{{ dashboard_unread_count }}</span>{% endif %}</a>
+                    {% include "restaurant/nav_notification_bell.html" %}
                     <details class="profile-menu"><summary>{{ request.user.get_full_name|default:request.user.username }}</summary><div class="profile-popover"><a href="{% url 'account_profile' %}">Profile settings</a><a href="{% url 'public_home' %}">Customer website</a></div></details>
                     {% if can_walkin %}<a class="back-site" href="{% url 'staff_walkin_payment' %}">New walk-in</a>{% endif %}
                 </div>
@@ -1382,7 +1404,7 @@
                     <div class="panelhead"><h2>KTV rooms and room status</h2><span class="tiny">Rates, capacity, availability, and current guest</span></div>
                     <div class="wrap">
                         <table>
-                            <thead><tr><th>Room</th><th>Room type / capacity</th><th>Hourly rate</th><th>Current status</th><th>Update</th></tr></thead>
+                            <thead><tr><th>Room</th><th>Room type / capacity</th><th>Hourly rate</th><th>Current status</th></tr></thead>
                             <tbody>
                                 {% for room in ktv_rooms %}
                                     <tr>
@@ -1390,47 +1412,40 @@
                                         <td>{{ room.room_type }}<br><span class="tiny">{{ room.min_capacity }} to {{ room.max_capacity }} guests</span></td>
                                         <td>PHP {{ room.hourly_price|floatformat:2 }}</td>
                                         <td>{{ room.current_status_label }}</td>
-                                        <td>{% if can_ktv_update %}<form method="post" class="inline-form">{% csrf_token %}<input type="hidden" name="action" value="update_ktv_room_status"><input type="hidden" name="room_id" value="{{ room.pk }}"><select name="status">{% for value, label in room.next_status_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select><button class="btn">Update</button></form>{% else %}View only{% endif %}</td>
                                     </tr>
-                                {% empty %}<tr><td colspan="5">No active KTV rooms.</td></tr>{% endfor %}
+                                {% empty %}<tr><td colspan="4">No active KTV rooms.</td></tr>{% endfor %}
                             </tbody>
                         </table>
                     </div>
 
-                    <div class="panelhead"><h2>KTV schedule and live session timers</h2><span class="tiny">Upcoming, active, ending soon, or overdue</span></div>
-                    <div class="wrap">
-                        <table>
-                            <thead><tr><th>Customer</th><th>Room</th><th>Scheduled</th><th>Duration / end</th><th>Session timer</th><th>Food order</th><th>Order status</th><th>Payment status</th><th>Reservation</th><th>Food subtotal</th><th>KTV fee</th><th>Approved extra time</th><th>Total due</th></tr></thead>
-                            <tbody>
-                                {% for booking in ktv_reservations_today %}
-                                    <tr>
-                                        <td>{{ booking.name }}<br><span class="pill">{{ booking.get_source_display }}</span><br><span class="tiny">{{ booking.phone }}<br>{{ booking.guests }} guests</span></td>
-                                        <td>{{ booking.ktv_room.name }}<br><span class="tiny">{{ booking.ktv_room.room_type }} | PHP {{ booking.ktv_room.hourly_price|floatformat:2 }}/hour</span></td>
-                                        <td>{{ booking.reservation_date }}<br>{{ booking.scheduled_start_at|date:'g:i A' }}</td>
-                                        <td>{{ booking.duration_hours }} booked hour(s){% if booking.additional_ktv_hours %}<br>+ {{ booking.additional_ktv_hours }} paid extra{% endif %}<br><span class="tiny">Ends {{ booking.scheduled_end_at|date:'g:i A' }}</span></td>
-                                        <td><span class="pill ktv-session-status" data-ktv-start="{{ booking.scheduled_start_at|date:'c' }}" data-ktv-end="{{ booking.scheduled_end_at|date:'c' }}" data-ktv-state="{{ booking.status }}">{{ booking.ktv_timing_status }}</span><br><span class="tiny ktv-countdown" data-start="{{ booking.scheduled_start_at|date:'c' }}" data-end="{{ booking.scheduled_end_at|date:'c' }}" data-state="{{ booking.status }}">Calculating...</span></td>
-                                        <td>{% for item in booking.food_order.items.all %}{{ item.quantity }} x {{ item.name }}{% if not forloop.last %}<br>{% endif %}{% empty %}No items{% endfor %}</td>
-                                        <td>{{ booking.food_order.get_order_status_display|default:'-' }}</td>
-                                        <td>{{ booking.food_order.get_payment_status_display|default:'Not checked out' }}</td>
-                                        <td>{{ booking.get_status_display }}</td>
-                                        <td>PHP {{ booking.food_order.amount|default:0|floatformat:2 }}</td>
-                                        <td>PHP {{ booking.ktv_fee|floatformat:2 }}</td>
-                                        <td>
-                                            {% if booking.additional_ktv_hours %}{{ booking.additional_ktv_hours }} hour(s) · PHP {{ booking.additional_ktv_fee|floatformat:2 }}{% else %}None{% endif %}
-                                            {% if can_ktv_update and booking.status == 'served' and booking.food_order.payment_status == 'paid' %}
-                                                <form method="post" class="extension-form mt-2">
-                                                    {% csrf_token %}<input type="hidden" name="action" value="add_ktv_time"><input type="hidden" name="reservation_id" value="{{ booking.pk }}">
-                                                    <input type="number" name="extra_hours" min="1" max="6" step="1" placeholder="Hours" aria-label="Additional hours" required>
-                                                    <input type="number" name="cash_received" min="0" step="0.01" placeholder="Cash PHP" aria-label="Cash received" required>
-                                                    <button class="btn">Approve and collect</button>
-                                                </form>
-                                            {% endif %}
-                                        </td>
-                                        <td>PHP {{ booking.total_amount|floatformat:2 }}</td>
-                                    </tr>
-                                {% empty %}<tr><td colspan="13">No upcoming or active KTV reservations.</td></tr>{% endfor %}
-                            </tbody>
-                        </table>
+                    <div class="panelhead"><h2>KTV schedule and live session timers</h2><span class="tiny">Start, end, and remaining time at a glance</span></div>
+                    <div class="ktv-schedule-grid">
+                        {% for booking in ktv_reservations_today %}
+                            <article class="ktv-booking-card">
+                                <div class="ktv-booking-head">
+                                    <div><div class="ktv-booking-name">{{ booking.name }}</div><span class="tiny">{{ booking.phone }} &middot; {{ booking.guests }} guests &middot; {{ booking.get_source_display }}</span></div>
+                                    <span class="pill">{{ booking.get_status_display }}</span>
+                                </div>
+                                <div class="ktv-booking-room"><strong>{{ booking.ktv_room.name }}</strong><span>{{ booking.ktv_room.room_type }} &middot; PHP {{ booking.ktv_room.hourly_price|floatformat:2 }}/hour</span></div>
+                                <div class="ktv-time-row">
+                                    <div class="ktv-time-block"><span class="ktv-time-label">Starts</span><span class="ktv-time-value">{{ booking.scheduled_start_at|date:'g:i A' }}</span><span class="ktv-time-date">{{ booking.scheduled_start_at|date:'M j, Y' }}</span></div>
+                                    <span class="ktv-time-arrow" aria-hidden="true">&rarr;</span>
+                                    <div class="ktv-time-block end"><span class="ktv-time-label">Scheduled end</span><span class="ktv-time-value">{{ booking.scheduled_end_at|date:'g:i A' }}</span><span class="ktv-time-date">{{ booking.scheduled_end_at|date:'M j, Y' }}</span></div>
+                                </div>
+                                <span class="ktv-duration">{{ booking.duration_hours }} booked hour(s){% if booking.additional_ktv_hours %} + {{ booking.additional_ktv_hours }} paid extra{% endif %}</span>
+                                <div class="ktv-live-timer"><span class="pill ktv-session-status" data-ktv-start="{{ booking.scheduled_start_at|date:'c' }}" data-ktv-end="{{ booking.scheduled_end_at|date:'c' }}" data-ktv-state="{{ booking.status }}">{{ booking.ktv_timing_status }}</span><span class="ktv-countdown" data-start="{{ booking.scheduled_start_at|date:'c' }}" data-end="{{ booking.scheduled_end_at|date:'c' }}" data-state="{{ booking.status }}">Calculating...</span></div>
+                                <div class="ktv-booking-meta"><span>Food order: {% for item in booking.food_order.items.all %}{{ item.quantity }} x {{ item.name }}{% if not forloop.last %}, {% endif %}{% empty %}No items{% endfor %}</span><span>Order / payment: {{ booking.food_order.get_order_status_display|default:'-' }} / {{ booking.food_order.get_payment_status_display|default:'Not checked out' }}</span><span>Total due: <strong>PHP {{ booking.total_amount|floatformat:2 }}</strong></span></div>
+                                <div class="ktv-booking-meta"><span>Food PHP {{ booking.food_order.amount|default:0|floatformat:2 }}</span><span>KTV PHP {{ booking.ktv_fee|floatformat:2 }}</span><span>{% if booking.additional_ktv_hours %}Extra time: {{ booking.additional_ktv_hours }} hour(s) &middot; PHP {{ booking.additional_ktv_fee|floatformat:2 }}{% else %}No extra time{% endif %}</span></div>
+                                {% if can_ktv_update and booking.status != 'cancelled' and booking.status != 'completed' and booking.status != 'rejected' and booking.scheduled_start_at <= ktv_now and booking.food_order.payment_status == 'paid' %}
+                                    <div class="ktv-extension"><form method="post" class="extension-form">
+                                        {% csrf_token %}<input type="hidden" name="action" value="add_ktv_time"><input type="hidden" name="reservation_id" value="{{ booking.pk }}">
+                                        <input type="number" name="extra_hours" min="1" max="6" step="1" placeholder="Extra hours" aria-label="Additional hours" required>
+                                        <input type="number" name="cash_received" min="0" step="0.01" placeholder="Cash PHP" aria-label="Cash received" required>
+                                        <button class="btn">Approve and collect</button>
+                                    </form></div>
+                                {% endif %}
+                            </article>
+                        {% empty %}<div class="empty">No upcoming or active KTV reservations.</div>{% endfor %}
                     </div>
 
                     <div class="panelhead"><h2>Cancelled KTV reservations</h2></div>
@@ -1454,151 +1469,6 @@
                 </section>
                 {% endif %}
 
-                <!-- Reservations -->
-
-                {% if can_reservations %}
-
-                <section
-                    class="panel"
-                    id="reservations"
-                >
-
-                    <div class="panelhead">
-
-                        <h2>
-                            Reservations
-                        </h2>
-
-                        <span class="tiny">
-                            Guest details for service
-                        </span>
-
-                    </div>
-
-
-                    <div class="wrap">
-
-                        <table>
-
-                            <thead>
-
-                                <tr>
-
-                                    <th>
-                                        Guest
-                                    </th>
-
-                                    <th>
-                                        Date & time
-                                    </th>
-
-                                    <th>
-                                        Party
-                                    </th>
-
-                                    <th>
-                                        Table
-                                    </th>
-
-                                    <th>
-                                        Status
-                                    </th>
-
-                                    <th>Update reservation</th>
-
-                                </tr>
-
-                            </thead>
-
-
-                            <tbody>
-
-                                {% for booking in recent_reservations %}
-
-                                <tr>
-
-                                    <td>
-
-                                        {{ booking.name }}
-
-                                        <br>
-
-                                        <span class="pill">{{ booking.get_source_display }}</span>
-
-                                        <br>
-
-                                        <span class="tiny">
-                                            {{ booking.reference }}
-                                        </span>
-
-                                    </td>
-
-                                    <td>
-
-                                        {{ booking.reservation_date }}
-
-                                        <br>
-
-                                        {{ booking.reservation_time|time:'g:i A' }}
-
-                                    </td>
-
-                                    <td>
-                                        {{ booking.guests }}
-                                    </td>
-
-                                    <td>
-                                        {% if booking.ktv_room %}{{ booking.ktv_room.name }}{% else %}{{ booking.table.name|default:'Unassigned' }}{% endif %}
-                                    </td>
-
-                                    <td>
-                                        {{ booking.get_status_display }}
-                                    </td>
-
-                                    <td>
-                                        {% if can_reservation_update and booking.next_status_choices %}
-                                            <form method="post" class="inline-form">
-                                                {% csrf_token %}
-                                                <input type="hidden" name="action" value="update_reservation_status">
-                                                <input type="hidden" name="reservation_id" value="{{ booking.pk }}">
-                                                <select class="status-update-select" name="status" aria-label="Select next reservation status for {{ booking.reference }}" required>
-                                                    <option value="" disabled selected>Select next status</option>
-                                                    {% for value, label in booking.next_status_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
-                                                </select>
-                                                <button class="btn">Update</button>
-                                            </form>
-                                        {% elif can_reservation_update %}—{% else %}View only{% endif %}
-                                    </td>
-
-                                </tr>
-
-
-                                {% empty %}
-
-                                <tr>
-
-                                    <td
-                                        class="empty"
-                                        colspan="6"
-                                    >
-                                        No reservations.
-                                    </td>
-
-                                </tr>
-
-                                {% endfor %}
-
-                            </tbody>
-
-                        </table>
-
-                    </div>
-
-                </section>
-
-                {% endif %}
-
-
                 <!-- Inventory -->
 
                 {% if can_inventory %}
@@ -1614,11 +1484,13 @@
                             Inventory
                         </h2>
 
+                        <a class="tiny" href="{% url 'staff_inventory_dashboard' %}">Open inventory workspace ↗</a>
+
                         {% if can_movements %}
 
                         <a
                             class="tiny"
-                            href="/admin/restaurant/stockmovement/"
+                            href="{% url 'staff_inventory_dashboard' %}#movement-history"
                         >
                             Movement history ↗
                         </a>
@@ -1760,6 +1632,8 @@
                                                     required
                                                 >
 
+                                                <input name="note" maxlength="240" placeholder="Note (optional)">
+
                                                 <button class="btn">
                                                     Stock in
                                                 </button>
@@ -1796,6 +1670,8 @@
                                                     placeholder="Qty"
                                                     required
                                                 >
+
+                                                <input name="note" maxlength="240" placeholder="Usage note (optional)">
 
                                                 <button class="btn">
                                                     Usage
@@ -1962,6 +1838,18 @@
   window.setInterval(updateKtvTimers, 1000);
 })();
 </script>
+<dialog id="notification-modal" aria-labelledby="notification-modal-title" aria-describedby="notification-modal-message">
+    <div class="notification-modal-content">
+        <div class="notification-modal-heading"><button type="button" class="notification-modal-close" data-notification-modal-close aria-label="Close notification">&#215;</button></div>
+        <h2 id="notification-modal-title"></h2>
+        <div id="notification-modal-message"></div>
+        <time id="notification-modal-date" class="notification-modal-date"></time>
+        <p id="notification-modal-thanks" class="notification-modal-thanks"></p>
+        <a id="notification-modal-link" class="notification-modal-action" href="" hidden>Open task</a>
+        <button type="button" class="notification-modal-action" data-notification-modal-close>Close</button>
+    </div>
+</dialog>
+<script src="{% static 'js/main.js' %}?v=notification-modal-view-1"></script>
 </body>
 
 </html>

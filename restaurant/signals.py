@@ -3,6 +3,7 @@ from django.dispatch import receiver
 from django.utils import timezone
 
 from .models import InventoryItem, StockAlert
+from .notification_utils import notify_operations
 
 
 @receiver(post_save, sender=InventoryItem)
@@ -18,5 +19,6 @@ def update_inventory_alert(sender, instance, **kwargs):
                 alert.save(update_fields=("message",))
         else:
             StockAlert.objects.create(item=instance, message=message)
+            notify_operations(("admin", "staff"), "Low stock", message)
     else:
         StockAlert.objects.filter(item=instance, is_resolved=False).update(is_resolved=True, resolved_at=timezone.now())
