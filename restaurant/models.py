@@ -142,6 +142,10 @@ class SiteContent(models.Model):
     opening_hours = models.TextField(default="Tuesday – Thursday: 5:30pm – 11pm\nFriday – Sunday: 5:30pm – 11:30pm\nMonday: Closed")
     announcement = models.CharField(max_length=240, blank=True)
     private_dining_text = models.TextField(default="For intimate celebrations, team dinners, and everything worth marking, our private dining room is yours.")
+    gcash_account_name = models.CharField(max_length=120, blank=True)
+    gcash_number = models.CharField(max_length=40, blank=True)
+    gcash_qr_code = models.ImageField(upload_to="payments/", blank=True)
+    gcash_instructions = models.TextField(blank=True)
 
     def __str__(self): return "Public website content"
 
@@ -230,6 +234,10 @@ class KTVRoom(models.Model):
 
 
 class Reservation(models.Model):
+    class Source(models.TextChoices):
+        ONLINE = "online", "Online"
+        WALK_IN = "walk_in", "Walk-In"
+
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
         PAID = "paid", "Paid"
@@ -242,6 +250,7 @@ class Reservation(models.Model):
         COMPLETED = "completed", "Completed"
 
     reference = models.CharField(max_length=20, unique=True, editable=False, default="")
+    source = models.CharField(max_length=8, choices=Source.choices, default=Source.ONLINE)
     customer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, related_name="restaurant_reservations", null=True, blank=True)
     name = models.CharField(max_length=120)
     email = models.EmailField(blank=True)
@@ -329,13 +338,12 @@ class Reservation(models.Model):
 
     @property
     def next_status_choices(self):
-        transitions = {
-            self.Status.CONFIRMED: (self.Status.PREPARING,),
-            self.Status.PREPARING: (self.Status.READY,),
-            self.Status.READY: (self.Status.SERVED,),
-            self.Status.SERVED: (self.Status.COMPLETED,),
-        }
-        allowed = transitions.get(self.status, ())
+        progression = (self.Status.CONFIRMED, self.Status.PREPARING, self.Status.READY, self.Status.SERVED, self.Status.COMPLETED)
+        try:
+            current_index = progression.index(self.status)
+        except ValueError:
+            return ()
+        allowed = progression[current_index + 1:]
         return tuple((value, self.Status(value).label) for value in allowed)
 
     def __str__(self): return f"{self.reference} · {self.name}"
@@ -408,13 +416,12 @@ class FoodOrder(models.Model):
 
     @property
     def next_status_choices(self):
-        transitions = {
-            self.OrderStatus.NEW: (self.OrderStatus.PREPARING,),
-            self.OrderStatus.PREPARING: (self.OrderStatus.READY,),
-            self.OrderStatus.READY: (self.OrderStatus.SERVED,),
-            self.OrderStatus.SERVED: (self.OrderStatus.COMPLETED,),
-        }
-        allowed = transitions.get(self.order_status, ())
+        progression = (self.OrderStatus.NEW, self.OrderStatus.PREPARING, self.OrderStatus.READY, self.OrderStatus.SERVED, self.OrderStatus.COMPLETED)
+        try:
+            current_index = progression.index(self.order_status)
+        except ValueError:
+            return ()
+        allowed = progression[current_index + 1:]
         return tuple((value, self.OrderStatus(value).label) for value in allowed)
 
 
@@ -534,6 +541,20 @@ class CustomerNotification(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+
+
+class DashboardNotification(models.Model):
+    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="dashboard_notifications")
+    kind = models.CharField(max_length=32)
+    message = models.CharField(max_length=240)
+    url = models.CharField(max_length=240, blank=True)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self): return f"{self.kind} · {self.message[:60]}"
 
 
 class ActivityLog(models.Model):

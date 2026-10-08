@@ -1,36 +1,28 @@
 {% extends 'restaurant/base.html' %}
 
 {% block title %}
-    Payment Pending | Casa Sonata
+    Payment Verification Pending | Casa Sonata
 {% endblock %}
 
-
 {% block content %}
+<section class="mx-auto max-w-3xl px-6 pb-20 pt-40 text-center">
+    <p class="text-xs font-bold uppercase tracking-[.3em] text-gold">GCash Payment</p>
 
-<section
-    class="mx-auto max-w-3xl px-6 pb-20 pt-40 text-center"
->
-
-    <p class="text-xs font-bold uppercase tracking-[.3em] text-gold">
-        GCash payment
-    </p>
-
-    <h1 class="mt-4 font-serif text-5xl">
-        Payment pending
-    </h1>
+    <h1 class="mt-4 font-serif text-5xl">Payment Verification Pending</h1>
 
     <p class="mt-6 text-lg text-ink/70">
-        Order {{ reservation.reference }} is awaiting verified
-        GCash payment for ₱{{ order.total_amount }}.
-        Your reservation will be confirmed automatically
-        after payment verification.
+        Your GCash payment for <strong>Order {{ reservation.reference }}</strong> is currently awaiting verification.
     </p>
 
-    <p class="mt-6 text-sm text-ink/60">
-        Gateway reference:
-        {{ order.gateway_reference }}
+    <div class="mx-auto mt-6 max-w-xl space-y-2 text-left text-sm text-ink/70">
+        <p><strong>Amount:</strong> ₱{{ order.total_amount|floatformat:2 }}</p>
+        <p><strong>Gateway Reference:</strong> {{ order.gateway_reference }}</p>
+    </div>
+
+    <p class="mx-auto mt-6 max-w-2xl leading-7 text-ink/70">
+        Please allow our staff to verify your payment. Once the payment has been confirmed, your <strong>reservation and order will be automatically confirmed</strong>.
     </p>
 
+    <p class="mt-6 font-semibold text-ink">Thank you for choosing Casa Sonata.</p>
 </section>
-
 {% endblock %}

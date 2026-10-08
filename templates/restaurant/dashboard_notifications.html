@@ -1,0 +1,18 @@
+{% if dashboard_notifications %}
+<section class="dashboard-notices" aria-labelledby="dashboard-notices-title">
+    <div class="dashboard-notices-heading">
+        <h2 id="dashboard-notices-title">Notifications</h2>
+        <span>{{ dashboard_unread_count }} unread</span>
+    </div>
+    <ul>
+        {% for notification in dashboard_notifications %}
+        <li class="{% if not notification.is_read %}is-unread{% endif %}">
+            <span class="dashboard-notice-kind">{{ notification.kind }}</span>
+            <p>{{ notification.message }}</p>
+            <time>{{ notification.created_at|date:'M j, g:i A' }}</time>
+        </li>
+        {% endfor %}
+    </ul>
+    <a href="{% url 'notification_center' %}">View all notifications</a>
+</section>
+{% endif %}

@@ -21,11 +21,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from .forms import CustomerRegistrationForm, KTVReservationForm, PaymentSubmissionForm, ProfileUpdateForm, ReservationForm, StaffAccountForm, WalkInReservationForm, dining_slot_available, ktv_slot_available
-from .models import ActivityLog, CustomerNotification, DiningTable, Event, Expense, FoodOrder, GalleryImage, KTVRoom, KTVTimeExtension, MenuCategory, MenuItem, OrderItem, Reservation, InventoryItem, StockAlert, StockIn, StockMovement, Supplier, SiteContent
-from .notification_utils import navigation_notifications
-
-PREORDER_CATEGORIES = ["Pasta", "Salad", "Snacks", "Dessert", "Waffles", "Mains", "Grilled", "Soup"]
-
+from .models import ActivityLog, CustomerNotification, DashboardNotification, DiningTable, Event, Expense, FoodOrder, GalleryImage, KTVRoom, KTVTimeExtension, MenuCategory, MenuItem, OrderItem, Reservation, InventoryItem, StockAlert, StockIn, StockMovement, Supplier, SiteContent
+from .notification_utils import navigation_notifications, notify_operations
 
 @login_required
 def notification_status(request):
@@ -33,7 +30,7 @@ def notification_status(request):
     return JsonResponse({
         "count": notifications["count"],
         "items": [
-            {"message": item["message"], "kind": item["kind"], "date": item["date"], "url": item["url"]}
+            {"message": item["message"], "kind": item["kind"], "date": item["date"], "url": item["url"], "is_read": item["is_read"]}
             for item in notifications["items"]
         ],
         "footer_url": notifications["footer_url"],
@@ -96,7 +93,9 @@ def event_detail(request, slug):
 
 
 def menu(request):
-    return render(request, "restaurant/menu.html", {"categories": MenuCategory.objects.prefetch_related("items")})
+    return render(request, "restaurant/menu.html", {
+        "categories": MenuCategory.objects.filter(items__isnull=False).distinct().prefetch_related("items"),
+    })
 
 
 def about(request): return render(request, "restaurant/about.html")
@@ -131,6 +130,7 @@ def reservation(request):
                 booking.save()
         if booking:
             _notify_customer(booking, CustomerNotification.Kind.RESERVATION, f"Reservation {booking.reference} was received. Choose food for your visit; your table booking is free.")
+            notify_operations(("staff", "admin"), "Reservation", f"New dine-in reservation {booking.reference}: {booking.guests} guests on {booking.reservation_date} at {booking.reservation_time}.")
             request.session["reservation_id"] = booking.pk
             return redirect("preorder", reference=booking.reference)
     return render(request, "restaurant/reservation.html", {"form": form})
@@ -159,6 +159,7 @@ def ktv_reservation(request):
                     room.save(update_fields=["status"])
         if booking:
             _notify_customer(booking, CustomerNotification.Kind.RESERVATION, f"KTV reservation {booking.reference} was received. Choose food and drinks for your visit.")
+            notify_operations(("staff", "admin"), "KTV schedule", f"New KTV booking {booking.reference} for {booking.ktv_room.name} on {booking.reservation_date} at {booking.reservation_time}.")
             return redirect("preorder", reference=booking.reference)
     return render(request, "restaurant/ktv_reservation.html", {"form": form, "rooms": KTVRoom.objects.filter(active=True)})
 
@@ -166,7 +167,7 @@ def ktv_reservation(request):
 @login_required
 def preorder(request, reference):
     reservation = get_object_or_404(Reservation, reference=reference, customer=request.user)
-    menu_items = MenuItem.objects.filter(available=True, category__name__in=PREORDER_CATEGORIES).select_related("category")
+    menu_items = MenuItem.objects.filter(available=True).select_related("category")
     order, _ = FoodOrder.objects.get_or_create(reservation=reservation)
     if request.method == "POST":
         with transaction.atomic():
@@ -179,9 +180,10 @@ def preorder(request, reference):
                 messages.error(request, "Please add at least one food or beverage item before continuing.")
             else:
                 order.recalculate_total()
+                notify_operations(("staff", "admin"), "New order", f"A food order for reservation {reservation.reference} is ready for review.")
                 return redirect("checkout", reference=reservation.reference)
     quantities = {item.menu_item_id: item.quantity for item in order.items.all()}
-    categories = MenuCategory.objects.filter(name__in=PREORDER_CATEGORIES).prefetch_related(
+    categories = MenuCategory.objects.filter(items__available=True).distinct().prefetch_related(
         Prefetch("items", queryset=menu_items, to_attr="preorder_items")
     )
     return render(request, "restaurant/preorder.html", {"reservation": reservation, "categories": categories, "quantities": quantities})
@@ -205,8 +207,14 @@ def checkout(request, reference):
         order.payment_status = FoodOrder.PaymentStatus.PENDING
         order.paid_at = None
         order.save(update_fields=["payment_method", "gateway_reference", "payment_proof", "payment_status", "paid_at"])
+        notify_operations(("staff", "admin"), "Pending GCash payment", f"GCash payment for reservation {reservation.reference} is waiting for verification.")
         return redirect("payment_pending", reference=reference)
-    return render(request, "restaurant/checkout.html", {"reservation": reservation, "order": order, "total_amount": order.total_amount})
+    return render(request, "restaurant/checkout.html", {
+        "reservation": reservation,
+        "order": order,
+        "total_amount": order.total_amount,
+        "site_content": SiteContent.objects.first(),
+    })
 
 
 @login_required
@@ -241,6 +249,7 @@ def cancel_ktv_reservation(request, reference):
         booking.cancelled_at = timezone.now()
         booking.save(update_fields=["status", "cancelled_at"])
         _notify_customer(booking, CustomerNotification.Kind.RESERVATION, f"KTV reservation {booking.reference} has been cancelled. Your payment record remains available for administrator review.")
+        notify_operations(("staff", "admin"), "Cancelled reservation", f"KTV reservation {booking.reference} for {booking.reservation_date} at {booking.reservation_time} was cancelled.")
         payment_status = booking.food_order.get_payment_status_display() if hasattr(booking, "food_order") else "No payment submitted"
         ActivityLog.objects.create(
             actor=request.user,
@@ -296,10 +305,13 @@ def staff_walkin_payment(request):
     if not user.is_active or not user.is_staff or not _staff_can(user, "change_staff_payments", ("Cashier",)):
         raise PermissionDenied
     menu_items = MenuItem.objects.filter(available=True).select_related("category").order_by("category__order", "name")
-    form = WalkInReservationForm(request.POST or None)
+    requested_service = request.GET.get("service")
+    initial = {"reservation_type": requested_service} if requested_service in ("dine_in", "ktv") else None
+    form = WalkInReservationForm(request.POST or None, initial=initial)
     quantities = {}
     if request.method == "POST" and form.is_valid():
         selected = []
+        reservation_type = form.cleaned_data["reservation_type"]
         invalid_quantity = False
         for item in menu_items:
             raw_quantity = request.POST.get(f"item_{item.pk}", "0")
@@ -317,48 +329,83 @@ def staff_walkin_payment(request):
         elif not selected:
             form.add_error(None, "Choose at least one menu item for this walk-in order.")
         else:
-            total = sum((item.price * quantity for item, quantity in selected), Decimal("0"))
-            cash_received = form.cleaned_data["cash_tendered"]
-            if cash_received < total:
-                form.add_error("cash_tendered", f"Cash received must be at least ₱{total:.2f}.")
+            food_total = sum((item.price * quantity for item, quantity in selected), Decimal("0"))
+            selected_room = form.cleaned_data.get("room") if reservation_type == "ktv" else None
+            duration_hours = form.cleaned_data.get("duration_hours") or 0
+            room_fee = selected_room.hourly_price * duration_hours if selected_room else Decimal("0")
+            total_due = food_total + room_fee
+            payment_method = form.cleaned_data["payment_method"]
+            cash_received = form.cleaned_data.get("cash_tendered") or Decimal("0")
+            if payment_method == "cash" and cash_received < total_due:
+                form.add_error("cash_tendered", f"Cash received must be at least ₱{total_due:.2f}.")
             else:
                 now = timezone.localtime()
+                reservation_time = form.cleaned_data["start_time"] if reservation_type == "ktv" else now.time().replace(second=0, microsecond=0)
                 try:
                     with transaction.atomic():
-                        table = DiningTable.objects.select_for_update().get(pk=form.cleaned_data["table"].pk, active=True, occupied=False)
-                        active_statuses = [Reservation.Status.PENDING, Reservation.Status.PAID, Reservation.Status.CONFIRMED, Reservation.Status.PREPARING, Reservation.Status.READY, Reservation.Status.SERVED]
-                        if Reservation.objects.select_for_update().filter(table=table, reservation_date=now.date(), status__in=active_statuses).exists():
-                            raise DiningTable.DoesNotExist
+                        table = None
+                        room = None
+                        if reservation_type == "dine_in":
+                            table = DiningTable.objects.select_for_update().get(pk=form.cleaned_data["table"].pk, active=True, occupied=False)
+                            active_statuses = [Reservation.Status.PENDING, Reservation.Status.PAID, Reservation.Status.CONFIRMED, Reservation.Status.PREPARING, Reservation.Status.READY, Reservation.Status.SERVED]
+                            if Reservation.objects.select_for_update().filter(table=table, reservation_date=now.date(), status__in=active_statuses).exists():
+                                raise DiningTable.DoesNotExist
+                        else:
+                            room = KTVRoom.objects.select_for_update().get(pk=selected_room.pk, active=True, status=KTVRoom.Status.AVAILABLE)
+                            if not ktv_slot_available(room, now.date(), reservation_time, duration_hours):
+                                raise KTVRoom.DoesNotExist
                         booking = Reservation.objects.create(
                             name=form.cleaned_data["name"], email=form.cleaned_data["email"],
                             phone=form.cleaned_data["phone"], reservation_date=now.date(),
-                            reservation_time=now.time().replace(second=0, microsecond=0),
-                            guests=form.cleaned_data["guests"], table=table,
+                            reservation_time=reservation_time, guests=form.cleaned_data["guests"],
+                            table=table, ktv_room=room, duration_hours=duration_hours if room else 0,
+                            ktv_fee=room_fee, source=Reservation.Source.WALK_IN,
                             status=Reservation.Status.CONFIRMED,
                         )
                         order = FoodOrder.objects.create(
-                            reservation=booking, payment_method="cash",
+                            reservation=booking, payment_method=payment_method,
                             payment_status=FoodOrder.PaymentStatus.PAID,
-                            order_status=FoodOrder.OrderStatus.NEW, amount=total,
-                            cash_received=cash_received, cash_change=cash_received - total,
+                            order_status=FoodOrder.OrderStatus.NEW, amount=food_total,
+                            gateway_reference=form.cleaned_data.get("gcash_reference", "") if payment_method == "gcash" else "",
+                            cash_received=cash_received if payment_method == "cash" else Decimal("0"),
+                            cash_change=cash_received - total_due if payment_method == "cash" else Decimal("0"),
                             paid_at=now,
                         )
                         OrderItem.objects.bulk_create([
                             OrderItem(order=order, menu_item=item, name=item.name, unit_price=item.price, quantity=quantity)
                             for item, quantity in selected
                         ])
-                        table.occupied = True
-                        table.save(update_fields=["occupied"])
+                        if table:
+                            table.occupied = True
+                            table.save(update_fields=["occupied"])
+                        else:
+                            room.status = KTVRoom.Status.RESERVED
+                            room.save(update_fields=["status"])
+                        place = table.name if table else f"KTV room {room.name}"
                         ActivityLog.objects.create(
-                            actor=user, action="Walk-in cash payment recorded", target=booking.reference,
-                            details=f"Table {table.name}; amount ₱{total:.2f}; cash received ₱{cash_received:.2f}; change ₱{cash_received-total:.2f}.",
+                            actor=user, action=f"Walk-in {payment_method} payment recorded", target=booking.reference,
+                            details=f"{place}; food PHP {food_total:.2f}; KTV fee PHP {room_fee:.2f}; total PHP {total_due:.2f}; status {order.get_payment_status_display()}; reference {order.gateway_reference}; cash received PHP {cash_received:.2f}; change PHP {order.cash_change:.2f}.",
                         )
                 except DiningTable.DoesNotExist:
                     form.add_error("table", "That table is no longer available. Choose another table.")
+                except KTVRoom.DoesNotExist:
+                    form.add_error("room", "That KTV room is no longer available. Choose another room or service.")
                 else:
+                    notify_operations(("admin", "staff"), "Walk-in order", f"Walk-in order {booking.reference} was recorded at {place}.")
                     return redirect("staff_receipt", order_id=order.pk)
     quantity_rows = [{"item": item, "quantity": quantities.get(item.pk, 0)} for item in menu_items]
-    return render(request, "restaurant/staff_walkin.html", {"form": form, "quantity_rows": quantity_rows})
+    room_rates = {str(room.pk): str(room.hourly_price) for room in form.fields["room"].queryset}
+    return render(request, "restaurant/staff_walkin.html", {
+        "form": form,
+        "quantity_rows": quantity_rows,
+        "room_rates": room_rates,
+        "site_content": SiteContent.objects.first(),
+        "walkin_orders": FoodOrder.objects.filter(
+            reservation__source=Reservation.Source.WALK_IN,
+        ).select_related(
+            "reservation", "reservation__table", "reservation__ktv_room",
+        ).prefetch_related("items", "reservation__time_extensions").order_by("-created_at")[:30],
+    })
 
 
 @login_required(login_url="staff_login")
@@ -399,21 +446,39 @@ def staff_dashboard(request):
                 _notify_customer(order.reservation, CustomerNotification.Kind.PAYMENT, f"Payment for {order.reservation.reference} was accepted. Your reservation is confirmed.")
                 _log_staff(request.user, "Payment accepted", order.reservation.reference, f"Amount ₱{order.total_amount}; GCash reference {order.gateway_reference}")
                 messages.success(request, f"Payment for {order.reservation.reference} approved; reservation confirmed.")
+                notify_operations(("admin", "staff"), "Payment update", f"Payment for {order.reservation.reference} was verified by staff.")
             else:
                 order.payment_status = FoodOrder.PaymentStatus.REJECTED
                 order.save(update_fields=["payment_status"])
+                if order.reservation.source == Reservation.Source.WALK_IN:
+                    if order.reservation.table_id:
+                        DiningTable.objects.filter(pk=order.reservation.table_id).update(occupied=False)
+                    if order.reservation.ktv_room_id:
+                        KTVRoom.objects.filter(pk=order.reservation.ktv_room_id).update(status=KTVRoom.Status.AVAILABLE)
+                    order.reservation.status = Reservation.Status.REJECTED
+                    order.reservation.save(update_fields=["status"])
                 _notify_customer(order.reservation, CustomerNotification.Kind.PAYMENT, f"Payment for {order.reservation.reference} was not accepted. Please contact Casa Sonata or submit payment again.")
                 _log_staff(request.user, "Payment rejected", order.reservation.reference, f"Amount ₱{order.total_amount}; GCash reference {order.gateway_reference}")
                 messages.info(request, f"Payment for {order.reservation.reference} rejected.")
+                notify_operations(("admin", "staff"), "Payment update", f"Payment for {order.reservation.reference} was rejected by staff.")
         elif action == "update_reservation_status" and can_reservation_update:
             booking = get_object_or_404(Reservation.objects.select_related("table", "ktv_room", "customer"), pk=request.POST.get("reservation_id"))
             status = request.POST.get("status")
             allowed_statuses = [value for value, _ in booking.next_status_choices]
             if status not in allowed_statuses:
-                messages.error(request, f"{booking.reference} can only move to its next reservation status.")
+                messages.error(request, f"{booking.reference} can only move forward to an available reservation status.")
                 return redirect("staff_dashboard")
             booking.status = status
             booking.save(update_fields=["status"])
+            reservation_order_status = {
+                Reservation.Status.CONFIRMED: FoodOrder.OrderStatus.NEW,
+                Reservation.Status.PREPARING: FoodOrder.OrderStatus.PREPARING,
+                Reservation.Status.READY: FoodOrder.OrderStatus.READY,
+                Reservation.Status.SERVED: FoodOrder.OrderStatus.SERVED,
+                Reservation.Status.COMPLETED: FoodOrder.OrderStatus.COMPLETED,
+            }.get(status)
+            if reservation_order_status:
+                FoodOrder.objects.filter(reservation=booking).update(order_status=reservation_order_status)
             if booking.ktv_room_id and status in (Reservation.Status.PREPARING, Reservation.Status.READY):
                 KTVRoom.objects.filter(pk=booking.ktv_room_id).exclude(status=KTVRoom.Status.MAINTENANCE).update(status=KTVRoom.Status.RESERVED)
             if status == Reservation.Status.READY:
@@ -445,7 +510,7 @@ def staff_dashboard(request):
                     return redirect("staff_dashboard")
                 allowed_statuses = [value for value, _ in order.next_status_choices]
                 if status not in allowed_statuses:
-                    messages.error(request, "Move the order forward one step at a time: New, Preparing, Ready, Served, then Completed.")
+                    messages.error(request, "Choose a later order status: Preparing, Ready, Served, or Completed.")
                     return redirect("staff_dashboard")
 
                 order.order_status = status
@@ -566,7 +631,20 @@ def staff_dashboard(request):
         day = today - timedelta(days=offset)
         value = paid_total(paid.filter(paid_at__date=day), day, day)
         weekly_sales.append({"label": day.strftime("%a"), "amount": value})
-    reservations_today = Reservation.objects.filter(reservation_date=today).count() if can_reservations else 0
+    active_reservation_statuses = (Reservation.Status.PENDING, Reservation.Status.PAID, Reservation.Status.CONFIRMED, Reservation.Status.PREPARING, Reservation.Status.READY, Reservation.Status.SERVED)
+    reservations_today = Reservation.objects.filter(reservation_date=today, status__in=active_reservation_statuses).count() if can_reservations else 0
+    active_order_statuses = (FoodOrder.OrderStatus.NEW, FoodOrder.OrderStatus.PREPARING, FoodOrder.OrderStatus.READY, FoodOrder.OrderStatus.SERVED)
+    active_orders_count = FoodOrder.objects.filter(payment_status=FoodOrder.PaymentStatus.PAID, order_status__in=active_order_statuses).count() if can_orders else 0
+    walkin_customers_today = Reservation.objects.filter(source=Reservation.Source.WALK_IN, reservation_date=today).count() if can_reservations else 0
+    available_tables_count = DiningTable.objects.filter(active=True, occupied=False).exclude(
+        reservations__reservation_date=today,
+        reservations__status__in=active_reservation_statuses,
+    ).distinct().count() if can_tables else 0
+    active_ktv_rooms_count = KTVRoom.objects.filter(active=True).count() if can_ktv else 0
+    pending_task_count = (pending.count() if can_payments else 0) + (FoodOrder.objects.filter(
+        payment_status=FoodOrder.PaymentStatus.PAID,
+        order_status__in=(FoodOrder.OrderStatus.NEW, FoodOrder.OrderStatus.PREPARING, FoodOrder.OrderStatus.READY, FoodOrder.OrderStatus.SERVED),
+    ).count() if can_orders else 0)
     return render(request, "restaurant/staff_dashboard.html", {
         "today": today,
         "can_reservations": can_reservations, "can_reservation_update": can_reservation_update, "can_orders": can_orders,
@@ -586,6 +664,11 @@ def staff_dashboard(request):
         "tables_occupied": DiningTable.objects.filter(active=True, occupied=True).count() if can_tables else 0,
         "pending_orders": pending, "inventory": items, "low_stock": items.filter(quantity__lte=F("low_stock_threshold")),
         "sales_today": sales_today, "reservations_today": reservations_today,
+        "walkin_customers_today": walkin_customers_today,
+        "active_orders_count": active_orders_count,
+        "available_tables_count": available_tables_count,
+        "active_ktv_rooms_count": active_ktv_rooms_count,
+        "pending_task_count": pending_task_count,
         "ktv_income_today": (paid.filter(reservation__ktv_room__isnull=False, paid_at__date=today).aggregate(total=Sum("reservation__ktv_fee"))["total"] or Decimal("0")) + (KTVTimeExtension.objects.filter(created_at__date=today).aggregate(total=Sum("amount"))["total"] or Decimal("0")),
         "food_income_today": food_total(paid.filter(paid_at__date=today)),
         "ktv_reservation_count_today": Reservation.objects.filter(ktv_room__isnull=False, reservation_date=today).count(),
@@ -595,6 +678,8 @@ def staff_dashboard(request):
         "customers": Reservation.objects.values("customer").distinct().count() if can_reports else 0,
         "recent_reservations": Reservation.objects.filter(status__in=[Reservation.Status.PAID, Reservation.Status.CONFIRMED, Reservation.Status.PREPARING, Reservation.Status.READY, Reservation.Status.SERVED]).select_related("table", "ktv_room").order_by("reservation_date", "reservation_time")[:100] if can_reservations else Reservation.objects.none(),
         "recent_movements": StockMovement.objects.select_related("item").order_by("-created_at")[:6] if can_movements else StockMovement.objects.none(),
+        "dashboard_notifications": DashboardNotification.objects.filter(recipient=request.user, is_read=False)[:6],
+        "dashboard_unread_count": DashboardNotification.objects.filter(recipient=request.user, is_read=False).count(),
     })
 
 
@@ -625,6 +710,18 @@ def admin_dashboard(request):
         return room_income + extensions
     def food_income(queryset):
         return queryset.aggregate(total=Sum("amount"))["total"] or Decimal("0")
+
+    def payment_breakdown(start, end):
+        period = paid.filter(paid_at__date__range=(start, end))
+        def source_total(source):
+            amounts = period.filter(reservation__source=source).aggregate(food=Sum("amount"), ktv=Sum("reservation__ktv_fee"))
+            extras = KTVTimeExtension.objects.filter(reservation__source=source, created_at__date__range=(start, end)).aggregate(total=Sum("amount"))["total"] or Decimal("0")
+            return (amounts["food"] or Decimal("0")) + (amounts["ktv"] or Decimal("0")) + extras
+        def method_total(method):
+            amounts = period.filter(payment_method=method).aggregate(food=Sum("amount"), ktv=Sum("reservation__ktv_fee"))
+            extras = KTVTimeExtension.objects.filter(created_at__date__range=(start, end)).aggregate(total=Sum("amount"))["total"] or Decimal("0") if method == "cash" else Decimal("0")
+            return (amounts["food"] or Decimal("0")) + (amounts["ktv"] or Decimal("0")) + extras
+        return {"online": source_total(Reservation.Source.ONLINE), "walk_in": source_total(Reservation.Source.WALK_IN), "gcash": method_total("gcash"), "cash": method_total("cash"), "total": paid_totals(period, start, end)}
 
     def income_since(start):
         return paid_totals(paid.filter(paid_at__date__range=(start, today)), start, today)
@@ -683,6 +780,22 @@ def admin_dashboard(request):
     recent_table_orders = FoodOrder.objects.filter(reservation__table__isnull=False).select_related("reservation", "reservation__table").prefetch_related("items").order_by("-created_at")[:10]
     ktv_reservations = Reservation.objects.filter(ktv_room__isnull=False).select_related("ktv_room", "customer").prefetch_related("food_order__items", "time_extensions").order_by("-reservation_date", "-reservation_time")[:25]
     ktv_cancellations = Reservation.objects.filter(ktv_room__isnull=False, status=Reservation.Status.CANCELLED).select_related("ktv_room", "customer").prefetch_related("food_order").order_by("-cancelled_at")[:25]
+    today_breakdown = payment_breakdown(today, today)
+    pending_online_payments = FoodOrder.objects.filter(
+        payment_status=FoodOrder.PaymentStatus.PENDING,
+        payment_method="gcash",
+        reservation__source=Reservation.Source.ONLINE,
+    ).select_related("reservation").prefetch_related("items").order_by("created_at")[:6]
+    recent_transactions = paid.select_related(
+        "reservation", "reservation__table", "reservation__ktv_room",
+    ).prefetch_related("items").order_by("-paid_at")[:8]
+    recent_orders = FoodOrder.objects.select_related(
+        "reservation", "reservation__table", "reservation__ktv_room",
+    ).prefetch_related("items").order_by("-created_at")[:8]
+    ktv_bookings_today = Reservation.objects.filter(
+        ktv_room__isnull=False,
+        reservation_date=today,
+    ).exclude(status__in=(Reservation.Status.CANCELLED, Reservation.Status.REJECTED)).select_related("ktv_room").prefetch_related("time_extensions").order_by("reservation_time")
     return render(request, "restaurant/admin_dashboard.html", {
         "today": today, "daily_income": daily_income, "daily_expense": daily_expense,
         "weekly_income": weekly_income, "weekly_expense": weekly_expense,
@@ -704,10 +817,20 @@ def admin_dashboard(request):
         "accepted_month": paid.filter(paid_at__date__range=(month_start, today)).count(),
         "accepted_year": paid.filter(paid_at__date__range=(year_start, today)).count(),
         "pending_payments": FoodOrder.objects.filter(payment_status=FoodOrder.PaymentStatus.PENDING).count(),
+        "online_pending_payments": FoodOrder.objects.filter(
+            payment_status=FoodOrder.PaymentStatus.PENDING,
+            reservation__source=Reservation.Source.ONLINE,
+        ).count(),
+        "walkin_pending_payments": FoodOrder.objects.filter(
+            payment_status=FoodOrder.PaymentStatus.PENDING,
+            reservation__source=Reservation.Source.WALK_IN,
+        ).count(),
         "upcoming_events": upcoming_events, "upcoming_event_count": upcoming_event_count,
         "low_inventory": low_inventory, "staff_count": request.user.__class__.objects.filter(is_staff=True, is_active=True, is_superuser=False).count(),
         "supplier_count": Supplier.objects.count(), "inventory_count": InventoryItem.objects.count(),
-        "notification_count": CustomerNotification.objects.filter(is_read=False).count() + open_stock_alerts.count(),
+        "notification_count": open_stock_alerts.count() + DashboardNotification.objects.filter(recipient=request.user, is_read=False).count(),
+        "dashboard_notifications": DashboardNotification.objects.filter(recipient=request.user, is_read=False)[:6],
+        "dashboard_unread_count": DashboardNotification.objects.filter(recipient=request.user, is_read=False).count(),
         "open_stock_alerts": open_stock_alerts,
         "out_of_stock_count": InventoryItem.objects.filter(quantity__lte=0).count(),
         "occupied_tables": DiningTable.objects.filter(active=True, occupied=True).count(),
@@ -717,6 +840,11 @@ def admin_dashboard(request):
         "recent_table_orders": recent_table_orders,
         "ktv_reservations": ktv_reservations,
         "ktv_cancellations": ktv_cancellations,
+        "today_breakdown": today_breakdown,
+        "pending_online_payments": pending_online_payments,
+        "recent_transactions": recent_transactions,
+        "recent_orders": recent_orders,
+        "ktv_bookings_today": ktv_bookings_today,
         "ktv_rooms": KTVRoom.objects.all(),
         "ktv_income_today": ktv_income(paid.filter(paid_at__date=today), today, today),
         "ktv_income_week": ktv_income(paid.filter(paid_at__date__range=(week_start, today)), week_start, today),
@@ -726,6 +854,12 @@ def admin_dashboard(request):
         "food_income_week": food_income(paid.filter(paid_at__date__range=(week_start, today))),
         "food_income_month": food_income(paid.filter(paid_at__date__range=(month_start, today))),
         "food_income_year": food_income(paid.filter(paid_at__date__range=(year_start, today))),
+        "payment_breakdowns": [
+            ("Today", payment_breakdown(today, today)),
+            ("This week", payment_breakdown(week_start, today)),
+            ("This month", payment_breakdown(month_start, today)),
+            ("This year", payment_breakdown(year_start, today)),
+        ],
         "tables": DiningTable.objects.filter(active=True).order_by("name"),
         "recent_activity": ActivityLog.objects.select_related("actor")[:12],
     })
@@ -733,14 +867,21 @@ def admin_dashboard(request):
 
 @login_required
 def notification_center(request):
+    can_view_operations = request.user.is_staff or request.user.is_superuser
     if request.method == "POST":
-        if request.user.is_superuser:
-            notes = CustomerNotification.objects.all()
-        elif request.user.is_staff:
+        dashboard_notes = DashboardNotification.objects.filter(recipient=request.user) if can_view_operations else DashboardNotification.objects.none()
+        if request.POST.get("dashboard_notification_id"):
+            note = get_object_or_404(dashboard_notes, pk=request.POST.get("dashboard_notification_id"))
+            note.is_read = True
+            note.save(update_fields=["is_read"])
+            messages.success(request, "Notification marked as read.")
+            return redirect("notification_center")
+        if can_view_operations:
             notes = CustomerNotification.objects.none()
         else:
             notes = CustomerNotification.objects.filter(customer=request.user)
         if request.POST.get("action") == "mark_all_read":
+            dashboard_notes.filter(is_read=False).update(is_read=True)
             notes.filter(is_read=False).update(is_read=True)
             messages.success(request, "Notifications marked as read.")
         elif request.POST.get("action") == "mark_read":
@@ -751,20 +892,27 @@ def notification_center(request):
         return redirect("notification_center")
 
     entries = []
-    unread_count = 0
+    dashboard_notes = DashboardNotification.objects.filter(recipient=request.user) if can_view_operations else DashboardNotification.objects.none()
+    unread_count = dashboard_notes.filter(is_read=False).count()
     if request.user.is_superuser:
-        customer_notes = CustomerNotification.objects.select_related("reservation", "customer").all()
+        customer_notes = CustomerNotification.objects.none()
         stock_alerts = StockAlert.objects.select_related("item").all()
-        unread_count = customer_notes.filter(is_read=False).count() + stock_alerts.filter(is_resolved=False).count()
+        unread_count += customer_notes.filter(is_read=False).count() + stock_alerts.filter(is_resolved=False).count()
     elif request.user.is_staff:
         can_view_inventory = _staff_can(request.user, "view_inventoryitem", ("Inventory Staff",))
         customer_notes = CustomerNotification.objects.none()
         stock_alerts = StockAlert.objects.filter(is_resolved=False).select_related("item") if can_view_inventory else StockAlert.objects.none()
-        unread_count = stock_alerts.count()
+        unread_count += stock_alerts.count()
     else:
         customer_notes = CustomerNotification.objects.filter(customer=request.user).select_related("reservation")
         stock_alerts = StockAlert.objects.none()
-        unread_count = customer_notes.filter(is_read=False).count()
+        unread_count += customer_notes.filter(is_read=False).count()
+
+    for note in dashboard_notes:
+        entries.append({
+            "id": f"ops-{note.pk}", "kind": note.kind, "message": note.message,
+            "created_at": note.created_at, "is_read": note.is_read, "dashboard_note": note,
+        })
 
     for note in customer_notes:
         entries.append({
@@ -845,6 +993,10 @@ def admin_module(request, module, object_id=None):
                 details = f"Reservation status: {record.get_status_display()}"
                 if record.status == Reservation.Status.READY:
                     _notify_customer(record, CustomerNotification.Kind.RESERVATION, _reservation_ready_message(record))
+                else:
+                    _notify_customer(record, CustomerNotification.Kind.RESERVATION, f"Reservation {record.reference} is now {record.get_status_display().lower()}.")
+                if record.status == Reservation.Status.CANCELLED:
+                    notify_operations(("staff", "admin"), "Cancelled reservation", f"Reservation {record.reference} was cancelled.")
                 if record.ktv_room_id and record.status in (Reservation.Status.PREPARING, Reservation.Status.READY):
                     KTVRoom.objects.filter(pk=record.ktv_room_id).exclude(status=KTVRoom.Status.MAINTENANCE).update(status=KTVRoom.Status.RESERVED)
                 if record.status == Reservation.Status.SERVED:
@@ -907,15 +1059,34 @@ def admin_payments(request):
         elif request.POST.get("decision") == "reject":
             order.payment_status = FoodOrder.PaymentStatus.REJECTED
             order.save(update_fields=["payment_status"])
+            if order.reservation.source == Reservation.Source.WALK_IN:
+                if order.reservation.table_id:
+                    DiningTable.objects.filter(pk=order.reservation.table_id).update(occupied=False)
+                if order.reservation.ktv_room_id:
+                    KTVRoom.objects.filter(pk=order.reservation.ktv_room_id).update(status=KTVRoom.Status.AVAILABLE)
+                order.reservation.status = Reservation.Status.REJECTED
+                order.reservation.save(update_fields=["status"])
             _notify_customer(order.reservation, CustomerNotification.Kind.PAYMENT, f"Payment for {order.reservation.reference} was not accepted. Please review and submit payment again.")
             action = "Payment rejected"
         else:
             raise PermissionDenied
         ActivityLog.objects.create(actor=request.user, action=action, target=order.reservation.reference, details=f"Amount {order.total_amount}; GCash reference {order.gateway_reference}")
+        notify_operations(("staff",), "Payment update", f"{action} for {order.reservation.reference} by an administrator.")
         messages.success(request, f"{order.reservation.reference}: {action.lower()}.")
         return redirect("admin_payments")
     payments = FoodOrder.objects.select_related("reservation", "reservation__customer", "reservation__table", "reservation__ktv_room").prefetch_related("items").order_by("payment_status", "-created_at")
-    return render(request, "restaurant/admin_payments.html", {"payments": payments})
+    filters = {key: request.GET.get(key, "") for key in ("payment_method", "source", "status", "date_from", "date_to")}
+    if filters["payment_method"]:
+        payments = payments.filter(payment_method=filters["payment_method"])
+    if filters["source"]:
+        payments = payments.filter(reservation__source=filters["source"])
+    if filters["status"]:
+        payments = payments.filter(payment_status=filters["status"])
+    if filters["date_from"]:
+        payments = payments.filter(created_at__date__gte=filters["date_from"])
+    if filters["date_to"]:
+        payments = payments.filter(created_at__date__lte=filters["date_to"])
+    return render(request, "restaurant/admin_payments.html", {"payments": payments, "filters": filters})
 
 
 @user_passes_test(lambda user: user.is_active and user.is_superuser, login_url="login")

@@ -48,6 +48,12 @@
         }
 
         .side {
+            position: fixed;
+            inset: 0 auto 0 0;
+            width: 225px;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 1001;
             background: var(--forest);
             color: #f7f5ef;
             padding: 28px 18px;
@@ -108,6 +114,7 @@
         }
 
         .main {
+            grid-column: 2;
             min-width: 0;
             padding: 28px 34px 52px;
             max-width: 1500px;
@@ -142,6 +149,17 @@
             font-size: 11px;
         }
 
+        .top-actions { display:flex; align-items:center; gap:9px; flex-wrap:wrap; }
+        .mobile-menu { display:none; border:1px solid #d9d8ce; background:#fff; color:#26382f; padding:9px 11px; border-radius:7px; font-weight:700; cursor:pointer; }
+        .header-link { position:relative; border:1px solid #deddd5; background:#fff; color:#344c3e; padding:9px 12px; border-radius:99px; text-decoration:none; font-size:11px; font-weight:700; }
+        .count-badge { display:inline-grid; place-items:center; min-width:18px; height:18px; margin-left:4px; border-radius:99px; background:#b35d4b; color:#fff; font-size:10px; }
+        .profile-menu { position:relative; }
+        .profile-menu summary { list-style:none; cursor:pointer; border:1px solid #deddd5; background:#fff; border-radius:99px; padding:9px 12px; font-size:11px; }
+        .profile-menu summary::-webkit-details-marker { display:none; }
+        .profile-popover { position:absolute; top:calc(100% + 8px); right:0; z-index:20; min-width:180px; padding:8px; border:1px solid var(--line); border-radius:8px; background:#fff; box-shadow:0 8px 28px #17251b22; }
+        .profile-popover a,.profile-popover button { display:block; width:100%; padding:9px; border:0; background:transparent; color:#344c3e; text-align:left; text-decoration:none; font:inherit; font-size:12px; cursor:pointer; }
+        .sidebar-backdrop { display:none; padding:0; border:0; }
+
         .back-site {
             border: 1px solid var(--gold);
             color: #26382f;
@@ -164,6 +182,8 @@
             gap: 13px;
             margin-bottom: 16px;
         }
+
+        .quick-actions { display:flex; flex-wrap:wrap; gap:9px; margin:0 0 16px; }
 
         .card,
         .panel {
@@ -288,10 +308,47 @@
         }
 
         .formrow select.order-status-select {
-            width: 118px;
-            min-width: 118px;
-            padding: 7px 8px;
+            width: 158px;
+            min-width: 158px;
+            min-height: 36px;
+            padding: 7px 30px 7px 10px;
+            border: 1px solid #d9ddd5;
+            border-radius: 6px;
+            background: #fff;
+            background-image: linear-gradient(45deg, transparent 50%, #596b5c 50%), linear-gradient(135deg, #596b5c 50%, transparent 50%);
+            background-position: calc(100% - 13px) 15px, calc(100% - 9px) 15px;
+            background-repeat: no-repeat;
+            background-size: 4px 4px;
+            color: #344c3e;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            appearance: none;
             white-space: normal;
+        }
+
+        .status-update-select {
+            min-width: 150px;
+            min-height: 36px;
+            padding: 7px 30px 7px 10px;
+            border: 1px solid #d9ddd5;
+            border-radius: 6px;
+            background-color: #fff;
+            background-image: linear-gradient(45deg, transparent 50%, #596b5c 50%), linear-gradient(135deg, #596b5c 50%, transparent 50%);
+            background-position: calc(100% - 13px) 15px, calc(100% - 9px) 15px;
+            background-repeat: no-repeat;
+            background-size: 4px 4px;
+            color: #344c3e;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            appearance: none;
+        }
+
+        .status-update-select:focus,
+        .order-status-select:focus {
+            border-color: #71836f;
+            outline: 3px solid #71836f24;
         }
 
         .ktv-session-status.ending-soon { background: #fff0d9; color: #8b5615; }
@@ -385,6 +442,8 @@
                 grid-template-columns: 180px 1fr;
             }
 
+            .side { width:180px; }
+
             .main {
                 padding: 22px 16px;
             }
@@ -402,9 +461,19 @@
             }
 
             .side {
-                padding: 12px 15px;
-                display: block;
+                position:fixed;
+                inset:0 auto 0 0;
+                width:min(300px,86vw);
+                height:100dvh;
+                padding:20px 16px;
+                display:flex;
+                flex-direction:column;
+                transform:translateX(-105%);
+                transition:transform .2s ease;
+                box-shadow:8px 0 28px #0003;
             }
+
+            .side.is-open { transform:translateX(0); }
 
             .brand {
                 display: inline-block;
@@ -412,15 +481,14 @@
             }
 
             .sub {
-                display: inline-block;
-                padding: 0 0 0 10px;
+                display:block;
+                padding: 0 12px 24px;
             }
 
-            .cap,
-            .nav,
-            .foot {
-                display: none;
-            }
+            .cap { display:block; }
+            .nav { display:block; }
+            .foot { display:block; }
+            .sidebar-backdrop:not([hidden]) { display:block; position:fixed; inset:0; z-index:1000; background:#1119; }
 
             .main {
                 padding: 20px 12px;
@@ -430,6 +498,11 @@
                 align-items: flex-start;
             }
 
+            .mobile-menu { display:inline-block; }
+            .top > div:nth-child(2) { flex:1 1 160px; min-width:0; }
+            .top-actions { flex:1 1 100%; justify-content:flex-start; gap:6px; }
+            .header-link { padding:8px 9px; }
+
             .title {
                 font-size: 26px;
             }
@@ -437,6 +510,8 @@
             .cards {
                 gap: 8px;
             }
+
+            .quick-actions .btn { flex:1 1 180px; text-align:center; }
 
             .card {
                 padding: 13px;
@@ -456,6 +531,49 @@
 
         }
 
+        /* Dashboard spacing and scan-friendly surfaces */
+        .main { max-width:1380px; padding:34px 40px 60px; }
+        .top { gap:18px; padding-bottom:20px; border-bottom:1px solid #e4e2d8; margin-bottom:24px; }
+        .dashboard-intro { margin:8px 0 0; color:#737970; font-size:13px; line-height:1.5; }
+        .cards { grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin:0 0 24px; }
+        .card { min-height:105px; padding:20px 21px; border-radius:13px; box-shadow:0 3px 12px #26382f08; border-top:2px solid #d7c7a8; }
+        .label { font-size:12px; line-height:1.45; color:#68736a; }
+        .value { font-size:29px; margin-top:12px; color:#26382f; }
+        .layout { grid-template-columns:minmax(0,1fr); gap:20px; }
+        .panel { padding:22px 24px; border-radius:13px; box-shadow:0 3px 14px #26382f08; }
+        .panelhead { gap:14px; padding-bottom:13px; margin-bottom:15px; border-bottom:1px solid #efeee8; }
+        .panel h2 { font-size:21px; line-height:1.3; }
+        .tiny { line-height:1.5; }
+        .wrap { max-width:100%; border:1px solid #efeee8; border-radius:8px; }
+        table { min-width:720px; }
+        th { background:#f8f7f3; position:sticky; top:0; z-index:1; padding:12px 10px; }
+        td { padding:13px 10px; line-height:1.5; }
+        tbody tr:hover { background:#fbfaf7; }
+        .pill { padding:5px 10px; font-weight:700; letter-spacing:.01em; }
+        .btn { padding:8px 11px; border-radius:7px; font-size:11px; }
+        .messages li { padding:13px 15px; border:1px solid #dfe8dc; line-height:1.5; }
+        .alert { padding:13px 15px; border:1px solid #efe2c8; line-height:1.5; }
+        .dashboard-notices { margin-bottom:22px; border-radius:12px; box-shadow:0 3px 14px #26382f08; }
+        .dashboard-notices li { border-radius:6px; }
+        .sidebar-backdrop { cursor:pointer; }
+
+        @media (max-width:950px) {
+            .main { padding:26px 22px 48px; }
+            .cards { grid-template-columns:repeat(2,minmax(0,1fr)); }
+        }
+        @media (max-width:620px) {
+            .main { padding:18px 14px 36px; }
+            .top { gap:10px; padding-bottom:16px; margin-bottom:18px; }
+            .dashboard-intro { font-size:12px; }
+            .cards { grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; margin-bottom:18px; }
+            .card { min-height:94px; padding:14px; }
+            .value { font-size:24px; margin-top:9px; }
+            .panel { padding:16px; }
+            .panelhead { align-items:flex-start; flex-direction:column; gap:5px; }
+            table { min-width:720px; }
+            .dashboard-notices { padding:13px; }
+        }
+
     </style>
 
 </head>
@@ -467,7 +585,7 @@
 
         <!-- Sidebar -->
 
-        <aside class="side">
+        <aside class="side" id="staff-sidebar">
 
             <div class="brand">
                 Casa Sonata
@@ -482,11 +600,10 @@
             </div>
 
 
-            <a
-                class="nav active"
-                href="{% url 'staff_dashboard' %}"
-            >
-                Overview
+            <a class="nav active" href="{% url 'staff_dashboard' %}">Dashboard</a>
+
+            <a class="nav" href="{% url 'notification_center' %}">
+                Notifications{% if dashboard_unread_count %} ({{ dashboard_unread_count }} new){% endif %}
             </a>
 
 
@@ -501,6 +618,8 @@
 
             {% endif %}
 
+            {% if can_reservations %}<a class="nav" href="#reservations">Reservations</a>{% endif %}
+
 
             {% if can_payments %}
 
@@ -508,13 +627,13 @@
                 class="nav"
                 href="#payments"
             >
-                Payments & receipts
+                Payments
             </a>
 
             {% endif %}
 
             {% if can_walkin %}
-            <a class="nav" href="{% url 'staff_walkin_payment' %}">Walk-in / OTC payment</a>
+            <a class="nav" href="{% url 'staff_walkin_payment' %}">Walk-In Customer</a>
             {% endif %}
 
 
@@ -532,6 +651,9 @@
             {% if can_ktv %}
             <a class="nav" href="#ktv">KTV rooms &amp; schedule</a>
             {% endif %}
+
+            {% if can_payments %}<a class="nav" href="#payments">Receipts</a>{% endif %}
+            <a class="nav" href="{% url 'account_profile' %}">Profile</a>
 
 
             {% if can_inventory %}
@@ -572,12 +694,16 @@
 
         </aside>
 
+        <button class="sidebar-backdrop" id="sidebar-backdrop" type="button" aria-label="Close navigation" hidden></button>
+
 
         <!-- Main Content -->
 
         <main class="main">
 
             <header class="top">
+
+                <button class="mobile-menu" id="mobile-menu" type="button" aria-controls="staff-sidebar" aria-expanded="false">Menu</button>
 
                 <div>
 
@@ -588,18 +714,19 @@
                     <h1 class="title">
                         Daily operations
                     </h1>
+                    <p class="dashboard-intro">Reservations, food service, payments, and room status in one place.</p>
 
                 </div>
 
-                <div style="display:flex;align-items:center;gap:10px">
-                    <span class="role">
-                        {{ request.user.groups.first.name|default:'Authorized staff' }}
-                    </span>
-                    <a class="back-site" href="{% url 'public_home' %}">Back to site</a>
-                    {% if can_walkin %}<a class="back-site" href="{% url 'staff_walkin_payment' %}">New walk-in / cash sale</a>{% endif %}
+                <div class="top-actions">
+                    <a class="header-link" href="{% url 'notification_center' %}">Notifications{% if dashboard_unread_count %}<span class="count-badge">{{ dashboard_unread_count }}</span>{% endif %}</a>
+                    <details class="profile-menu"><summary>{{ request.user.get_full_name|default:request.user.username }}</summary><div class="profile-popover"><a href="{% url 'account_profile' %}">Profile settings</a><a href="{% url 'public_home' %}">Customer website</a></div></details>
+                    {% if can_walkin %}<a class="back-site" href="{% url 'staff_walkin_payment' %}">New walk-in</a>{% endif %}
                 </div>
 
             </header>
+
+            {% include "restaurant/dashboard_notifications.html" %}
 
 
             {% if messages %}
@@ -640,47 +767,42 @@
                 {% endif %}
 
 
+                {% if can_reservations or can_payments %}
+
+                <article class="card">
+
+                    <div class="label">Walk-In Customers</div>
+
+                    <div class="value">
+                        {{ walkin_customers_today }}
+                    </div>
+
+                </article>
+
+                {% endif %}
+
+
                 {% if can_orders %}
 
                 <article class="card">
 
-                    <div class="label">
-                        Orders in queue
-                    </div>
+                    <div class="label">Active Orders</div>
 
                     <div class="value">
-                        {{ orders.count }}
+
+                        {{ active_orders_count }}
+
                     </div>
 
                 </article>
 
                 {% endif %}
 
-
-                {% if can_tables %}
-
-                <article class="card">
-
-                    <div class="label">
-                        Occupied tables
-                    </div>
-
-                    <div class="value">
-
-                        {{ tables_occupied }}
-
-                        <span class="tiny">
-                            / {{ tables.count }}
-                        </span>
-
-                    </div>
-
-                </article>
-
-                {% endif %}
+                {% if can_tables %}<article class="card"><div class="label">Available Tables</div><div class="value">{{ available_tables_count }} <span class="tiny">/ {{ tables.count }}</span></div></article>{% endif %}
+                {% if can_ktv %}<article class="card"><div class="label">KTV Rooms</div><div class="value">{{ active_ktv_rooms_count }}</div></article>{% endif %}
+                {% if can_orders or can_payments %}<article class="card"><div class="label">Pending Tasks</div><div class="value">{{ pending_task_count }}</div><span class="tiny">Orders and payments to review</span></article>{% endif %}
 
             </section>
-
 
             <div class="layout">
 
@@ -764,6 +886,8 @@
                                             {{ order.reservation.reference }}
                                         </strong>
 
+                                        <br><span class="pill">{{ order.reservation.get_source_display }}</span>
+
                                         <br>
 
                                         <span class="tiny">
@@ -846,7 +970,8 @@
                                                 value="{{ order.pk }}"
                                             >
 
-                                            <select class="order-status-select" name="status" aria-label="Next order status for {{ order.reservation.reference }}">
+                                            <select class="order-status-select" name="status" aria-label="Select next order status for {{ order.reservation.reference }}" required>
+                                                <option value="" disabled selected>Select next status</option>
                                                 {% for value, label in order.next_status_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
                                             </select>
 
@@ -928,7 +1053,7 @@
                     <div class="panelhead">
 
                         <h2>
-                            GCash payments
+                            Payments
                         </h2>
 
                         <span class="tiny">
@@ -983,6 +1108,7 @@
 
                                     <td>
                                         {{ order.reservation.reference }}
+                                        <br><span class="pill">{{ order.reservation.get_source_display }}</span>
                                         {% if order.reservation.is_ktv %}<br><span class="tiny">KTV · {{ order.reservation.ktv_room.name }}</span>{% endif %}
                                     </td>
 
@@ -995,7 +1121,7 @@
                                     </td>
 
                                     <td>
-                                        {{ order.gateway_reference|default:'—' }}
+                                        {{ order.payment_method|upper }}<br>{{ order.gateway_reference|default:'—' }}
                                     </td>
 
                                     <td>
@@ -1063,12 +1189,12 @@
                                             {% endif %}
 
 
-                                            <a
+                                            {% if order.payment_status == 'paid' %}<a
                                                 class="receipt"
                                                 href="{% url 'staff_receipt' order_id=order.pk %}"
                                             >
                                                 Receipt
-                                            </a>
+                                            </a>{% endif %}
 
                                         </div>
 
@@ -1278,7 +1404,7 @@
                             <tbody>
                                 {% for booking in ktv_reservations_today %}
                                     <tr>
-                                        <td>{{ booking.name }}<br><span class="tiny">{{ booking.phone }}<br>{{ booking.guests }} guests</span></td>
+                                        <td>{{ booking.name }}<br><span class="pill">{{ booking.get_source_display }}</span><br><span class="tiny">{{ booking.phone }}<br>{{ booking.guests }} guests</span></td>
                                         <td>{{ booking.ktv_room.name }}<br><span class="tiny">{{ booking.ktv_room.room_type }} | PHP {{ booking.ktv_room.hourly_price|floatformat:2 }}/hour</span></td>
                                         <td>{{ booking.reservation_date }}<br>{{ booking.scheduled_start_at|date:'g:i A' }}</td>
                                         <td>{{ booking.duration_hours }} booked hour(s){% if booking.additional_ktv_hours %}<br>+ {{ booking.additional_ktv_hours }} paid extra{% endif %}<br><span class="tiny">Ends {{ booking.scheduled_end_at|date:'g:i A' }}</span></td>
@@ -1397,6 +1523,10 @@
 
                                         <br>
 
+                                        <span class="pill">{{ booking.get_source_display }}</span>
+
+                                        <br>
+
                                         <span class="tiny">
                                             {{ booking.reference }}
                                         </span>
@@ -1431,7 +1561,8 @@
                                                 {% csrf_token %}
                                                 <input type="hidden" name="action" value="update_reservation_status">
                                                 <input type="hidden" name="reservation_id" value="{{ booking.pk }}">
-                                                <select name="status" aria-label="Next status for {{ booking.reference }}">
+                                                <select class="status-update-select" name="status" aria-label="Select next reservation status for {{ booking.reference }}" required>
+                                                    <option value="" disabled selected>Select next status</option>
                                                     {% for value, label in booking.next_status_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
                                                 </select>
                                                 <button class="btn">Update</button>
@@ -1779,6 +1910,21 @@
     </div>
 
 <script>
+(() => {
+  const sidebar = document.getElementById('staff-sidebar');
+  const toggle = document.getElementById('mobile-menu');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  const closeMenu = () => { sidebar.classList.remove('is-open'); backdrop.hidden = true; toggle.setAttribute('aria-expanded', 'false'); };
+  toggle.addEventListener('click', () => {
+    const open = sidebar.classList.toggle('is-open');
+    backdrop.hidden = !open;
+    toggle.setAttribute('aria-expanded', String(open));
+  });
+  backdrop.addEventListener('click', closeMenu);
+  sidebar.querySelectorAll('a').forEach(link => link.addEventListener('click', closeMenu));
+  document.addEventListener('keydown', event => { if (event.key === 'Escape') closeMenu(); });
+})();
+
 (() => {
   const timers = document.querySelectorAll('.ktv-countdown');
   const formatDuration = (seconds) => {

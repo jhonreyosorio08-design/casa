@@ -1,9 +1,20 @@
 const toggle = document.getElementById('menu-toggle');
 const mobile = document.getElementById('mobile-links');
-if (toggle && mobile) toggle.addEventListener('click', () => mobile.classList.toggle('hidden'));
+if (toggle && mobile) {
+  const setMenuOpen = open => {
+    mobile.classList.toggle('hidden', !open);
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+  };
+  toggle.addEventListener('click', () => setMenuOpen(toggle.getAttribute('aria-expanded') !== 'true'));
+  mobile.querySelectorAll('a').forEach(link => link.addEventListener('click', () => setMenuOpen(false)));
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') setMenuOpen(false);
+  });
+}
 
 const revealItems = document.querySelectorAll('[data-reveal]');
-if (revealItems.length && 'IntersectionObserver' in window && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+if (revealItems.length && 'IntersectionObserver' in window) {
   document.documentElement.classList.add('reveal-enabled');
   const revealObserver = new IntersectionObserver(entries => {
     entries.forEach(entry => {
@@ -17,18 +28,9 @@ if (revealItems.length && 'IntersectionObserver' in window && !window.matchMedia
 
 const typingPhrases = document.querySelectorAll('[data-typing-phrases]');
 if (typingPhrases.length) {
-  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   typingPhrases.forEach(element => {
     const phrases = (element.dataset.typingPhrases || '').split('|').filter(Boolean);
     if (!phrases.length) return;
-    if (reduceMotion) {
-      let reducedIndex = 0;
-      window.setInterval(() => {
-        reducedIndex = (reducedIndex + 1) % phrases.length;
-        element.textContent = phrases[reducedIndex];
-      }, 5000);
-      return;
-    }
     let phraseIndex = 0;
     let position = 0;
     let deleting = false;
@@ -68,6 +70,8 @@ const loginModal = document.getElementById('login-modal');
 document.querySelectorAll('.js-open-login').forEach(button => {
   button.addEventListener('click', () => {
     mobile?.classList.add('hidden');
+    toggle?.setAttribute('aria-expanded', 'false');
+    toggle?.setAttribute('aria-label', 'Open menu');
     if (loginModal && !loginModal.open) loginModal.showModal();
     document.getElementById('modal-username')?.focus();
   });
@@ -80,6 +84,46 @@ loginModal?.addEventListener('click', event => {
 });
 
 const notificationMenus = [...document.querySelectorAll('[data-notifications-url]')];
+const notificationModal = document.getElementById('notification-modal');
+let lastNotificationTrigger = null;
+document.addEventListener('click', event => {
+  const trigger = event.target.closest('[data-notification-view]');
+  if (!trigger || !notificationModal) return;
+  lastNotificationTrigger = trigger;
+  const title = document.getElementById('notification-modal-title');
+  const message = document.getElementById('notification-modal-message');
+  const thanks = document.getElementById('notification-modal-thanks');
+  const body = trigger.dataset.message || '';
+  const preparing = body.match(/Reservation\s+([A-Z0-9-]+)\s+is now preparing\.?/i);
+  message.replaceChildren();
+  if (preparing) {
+    title.textContent = 'Your reservation is being prepared';
+    const reservation = document.createElement('p');
+    reservation.append('Reservation ');
+    const reference = document.createElement('strong');
+    reference.textContent = preparing[1];
+    reservation.append(reference, ' has been accepted and is now being prepared by our team. We’ll notify you once everything is ready for your visit.');
+    message.append(reservation);
+    thanks.textContent = 'Thank you for choosing Casa Sonata. We look forward to welcoming you!';
+  } else {
+    title.textContent = trigger.dataset.title || 'Notification';
+    const paragraph = document.createElement('p');
+    paragraph.textContent = body;
+    message.append(paragraph);
+    thanks.textContent = 'Thank you for choosing Casa Sonata.';
+  }
+  trigger.closest('.notification-menu')?.removeAttribute('open');
+  notificationModal.showModal();
+  notificationModal.querySelector('[data-notification-modal-close]')?.focus();
+});
+notificationModal?.querySelectorAll('[data-notification-modal-close]').forEach(button => {
+  button.addEventListener('click', () => notificationModal.close());
+});
+notificationModal?.addEventListener('click', event => {
+  if (event.target === notificationModal) notificationModal.close();
+});
+notificationModal?.addEventListener('close', () => lastNotificationTrigger?.focus());
+
 if (notificationMenus.length) {
   const safeHref = value => {
     try {
@@ -105,6 +149,8 @@ if (notificationMenus.length) {
         }
         const countLabel = menu.querySelector('[data-notification-count]');
         if (countLabel) countLabel.textContent = `${count} unread`;
+        const markAllForm = menu.querySelector('[data-mark-all-form]');
+        if (markAllForm) markAllForm.hidden = count === 0;
         const list = menu.querySelector('[data-notification-items]');
         if (!list) return;
         list.replaceChildren();
@@ -116,9 +162,14 @@ if (notificationMenus.length) {
           return;
         }
         data.items.forEach(item => {
-          const link = document.createElement('a');
-          link.className = 'notification-item';
-          link.href = safeHref(item.url);
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = `notification-item${item.is_read ? '' : ' is-unread'}`;
+          button.dataset.notificationView = '';
+          button.dataset.title = item.kind || 'Notification';
+          button.dataset.message = item.message || '';
+          button.dataset.date = item.date || '';
+          button.dataset.read = String(Boolean(item.is_read));
           const kind = document.createElement('span');
           kind.className = 'notification-kind';
           kind.textContent = item.kind || 'Notification';
@@ -127,8 +178,13 @@ if (notificationMenus.length) {
           message.textContent = item.message || '';
           const date = document.createElement('time');
           date.textContent = item.date || '';
-          link.append(kind, message, date);
-          list.append(link);
+          message.title = item.message || '';
+          const view = document.createElement('span');
+          view.className = 'notification-view-label';
+          view.setAttribute('aria-hidden', 'true');
+          view.textContent = 'View →';
+          button.append(kind, message, date, view);
+          list.append(button);
         });
       });
       document.querySelectorAll('.notification-footer').forEach(link => { link.href = safeHref(data.footer_url); });

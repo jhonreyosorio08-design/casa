@@ -1,124 +1,223 @@
 {% extends 'restaurant/base.html' %}
 
-{% block title %}
-    Menu | Casa Sonata
-{% endblock %}
-
+{% block title %}Menu | Casa Sonata{% endblock %}
 
 {% block content %}
-
-<section class="bg-ink px-6 pb-20 pt-40 text-center text-white">
-
-    <p
-        class="text-xs font-bold uppercase tracking-[.3em] text-gold"
-    >
-        {{ site_content.restaurant_name|default:'Casa Sonata' }}
-    </p>
-
-    <h1 class="mt-4 font-serif text-6xl">
-        Our Menu
-    </h1>
-
-    <p
-        class="mx-auto mt-5 max-w-xl leading-7 text-white/65"
-    >
-        Good food, made for sharing.
-    </p>
-
+<section class="bg-ink px-6 pb-16 pt-40 text-center text-white">
+    <p class="text-xs font-bold uppercase tracking-[.3em] text-gold">{{ site_content.restaurant_name|default:'Casa Sonata' }}</p>
+    <h1 class="mt-4 font-serif text-6xl">Our Menu</h1>
+    <p class="mx-auto mt-5 max-w-xl leading-7 text-white/65">Good food, made for sharing. Explore the menu and add your favorites to your order.</p>
 </section>
 
+<section class="mx-auto max-w-7xl px-6 py-12 lg:px-10">
+    <div class="sticky top-20 z-10 -mx-2 mb-9 overflow-x-auto bg-cream/95 px-2 py-3 backdrop-blur">
+        <div class="flex min-w-max gap-2" role="group" aria-label="Filter menu by category">
+            <button type="button" class="menu-category-tab is-active" data-category-tab="all" aria-pressed="true">All items</button>
+            {% for category in categories %}
+                {% if category.items.all %}
+                <button type="button" class="menu-category-tab" data-category-tab="{{ category.pk }}" aria-pressed="false">{{ category.name }}</button>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
 
-<section
-    class="mx-auto max-w-6xl space-y-16 px-6 py-20"
->
-
-    {% for category in categories %}
-
-        {% with available_items=category.items.all %}
-
-        <section>
-
-            <h2
-                class="border-b border-gold pb-4 font-serif text-4xl"
-            >
-                {{ category.name }}
-            </h2>
-
-            <div
-                class="mt-6 grid gap-6 sm:grid-cols-2"
-            >
-
-                {% for item in available_items %}
-
-                    {% if item.available %}
-
-                    <article
-                        class="flex gap-5 border-b border-ink/10 pb-6"
-                    >
-
-                        {% if item.image %}
-
-                        <img
-                            class="h-24 w-24 shrink-0 object-cover"
-                            src="{{ item.image.url }}"
-                            alt="{{ item.name }}"
-                        >
-
-                        {% endif %}
-
-
-                        <div class="flex-1">
-
-                            <div
-                                class="flex justify-between gap-4"
-                            >
-
-                                <h3 class="font-serif text-xl">
-                                    {{ item.name }}
-                                </h3>
-
-                                <span
-                                    class="whitespace-nowrap text-gold"
-                                >
-                                    ₱{{ item.price }}
-                                </span>
-
-                            </div>
-
-                            <p
-                                class="mt-2 text-sm leading-6 text-ink/65"
-                            >
-                                {{ item.description }}
-                            </p>
-
-                        </div>
-
-                    </article>
-
+    {% if categories %}
+    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {% for category in categories %}
+            {% for item in category.items.all %}
+            <article class="menu-card{% if not item.available %} menu-card-unavailable{% endif %}" data-menu-category="{{ category.pk }}">
+                <div class="menu-card-image">
+                    {% if item.image %}
+                        <img src="{{ item.image.url }}" alt="{{ item.name }}" loading="lazy">
+                    {% else %}
+                        <div class="menu-image-placeholder" aria-hidden="true">Casa Sonata</div>
                     {% endif %}
-
-                {% empty %}
-
-                <p class="text-ink/60">
-                    Menu items will be added soon.
-                </p>
-
-                {% endfor %}
-
-            </div>
-
-        </section>
-
-        {% endwith %}
-
-    {% empty %}
-
-    <p class="text-center text-ink/60">
-        Our menu is being prepared. Please check back soon.
-    </p>
-
-    {% endfor %}
-
+                    <span class="menu-availability{% if not item.available %} is-unavailable{% endif %}">
+                        {% if item.available %}Available{% else %}Currently unavailable{% endif %}
+                    </span>
+                </div>
+                <div class="menu-card-body">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="menu-card-category">{{ category.name }}</p>
+                            <h2 class="mt-1 font-serif text-2xl">{{ item.name }}</h2>
+                        </div>
+                        <span class="shrink-0 pt-5 text-lg font-semibold text-gold">₱{{ item.price }}</span>
+                    </div>
+                    <p class="mt-3 min-h-12 text-sm leading-6 text-ink/65">{{ item.description|truncatewords:24 }}</p>
+                    {% if item.available %}
+                    <button type="button" class="menu-add-button" data-menu-add data-id="{{ item.pk }}" data-name="{{ item.name }}" data-price="{{ item.price }}">Add to Order</button>
+                    {% else %}
+                    <button type="button" class="menu-add-button" disabled>Unavailable</button>
+                    {% endif %}
+                </div>
+            </article>
+            {% empty %}
+                <p class="col-span-full py-8 text-center text-ink/60">Menu items will be added soon.</p>
+            {% endfor %}
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="py-10 text-center text-ink/60">Our menu is being prepared. Please check back soon.</p>
+    {% endif %}
 </section>
 
+<button id="menu-cart-button" type="button" class="menu-cart-button" aria-haspopup="dialog" aria-controls="menu-cart-dialog">
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><circle cx="9" cy="20" r="1"/><circle cx="19" cy="20" r="1"/><path d="M2 3h2l2.4 11.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6L22 7H5"/></svg>
+    <span>View order</span>
+    <span id="menu-cart-count" class="menu-cart-count">0</span>
+</button>
+
+<dialog id="menu-cart-dialog" class="menu-cart-dialog" aria-labelledby="menu-cart-dialog-title">
+    <div class="menu-cart-heading">
+        <div>
+            <p class="text-xs font-bold uppercase tracking-[.2em] text-gold">Your selections</p>
+            <h2 id="menu-cart-dialog-title" class="mt-2 font-serif text-3xl">Your order</h2>
+        </div>
+        <button id="menu-cart-close" type="button" class="menu-cart-close" aria-label="Close order">×</button>
+    </div>
+    <div id="menu-cart-items" class="menu-cart-items" aria-live="polite"></div>
+    <div class="menu-cart-total"><span>Subtotal</span><strong id="menu-cart-total">₱0.00</strong></div>
+    <p class="mt-3 text-sm leading-6 text-ink/60">To place your order, choose a reservation time first. Your selections will carry over to the order form.</p>
+    <a id="menu-cart-continue" class="menu-cart-continue" href="{% url 'reservation' %}" aria-disabled="true">Continue to reservation</a>
+</dialog>
+
+<style>
+    .menu-category-tab { min-height: 44px; padding: .7rem 1rem; border: 1px solid rgba(30,37,32,.16); border-radius: 999px; background: #fff; color: #354137; font-size: .78rem; font-weight: 700; white-space: nowrap; transition: color .18s ease, background-color .18s ease, border-color .18s ease; }
+    .menu-category-tab:hover, .menu-category-tab.is-active { border-color: #1e2520; background: #1e2520; color: #fff; }
+    .menu-card { display: flex; min-width: 0; flex-direction: column; overflow: hidden; border: 1px solid rgba(30,37,32,.12); background: #fff; box-shadow: 0 8px 24px rgba(30,37,32,.045); transition: transform .2s ease, box-shadow .2s ease; }
+    .menu-card[hidden] { display: none !important; }
+    .menu-card:hover { transform: translateY(-3px); box-shadow: 0 14px 30px rgba(30,37,32,.1); }
+    .menu-card-unavailable { opacity: .72; }
+    .menu-card-image { position: relative; display: grid; aspect-ratio: 4 / 3; place-items: center; overflow: hidden; background: #59624e; }
+    .menu-card-image img { width: 100%; height: 100%; object-fit: cover; transition: transform .45s ease; }
+    .menu-card:hover .menu-card-image img { transform: scale(1.035); }
+    .menu-image-placeholder { color: #f7f3ea; font: 1.5rem Georgia,serif; }
+    .menu-availability { position: absolute; bottom: .8rem; left: .8rem; padding: .4rem .65rem; background: #f7f3ea; color: #344c3e; font-size: .68rem; font-weight: 700; }
+    .menu-availability.is-unavailable { background: #fff; color: #9c4e3b; }
+    .menu-card-body { display: flex; flex: 1; flex-direction: column; padding: 1.25rem; }
+    .menu-card-category { color: #8a6032; font-size: .65rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+    .menu-add-button { width: 100%; min-height: 46px; margin-top: 1.1rem; padding: .75rem 1rem; background: #c9904c; color: #fff; font-size: .72rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; transition: background-color .18s ease; }
+    .menu-add-button:hover:not(:disabled) { background: #b65e42; }
+    .menu-add-button:disabled { cursor: not-allowed; background: #d7d4cc; color: #696b66; }
+    .menu-cart-button { position: fixed; right: max(1rem, env(safe-area-inset-right)); bottom: max(1rem, env(safe-area-inset-bottom)); z-index: 30; display: flex; min-height: 52px; align-items: center; gap: .65rem; padding: .75rem 1.15rem; border: 1px solid rgba(255,255,255,.24); border-radius: 999px; background: #1e2520; color: white; box-shadow: 0 8px 28px rgba(0,0,0,.25); font-size: .78rem; font-weight: 700; }
+    .menu-cart-button:hover { background: #344c3e; }
+    .menu-cart-count { display: grid; min-width: 1.5rem; height: 1.5rem; place-items: center; padding: 0 .3rem; border-radius: 999px; background: #c9904c; color: white; font-size: .7rem; }
+    .menu-cart-dialog { position: fixed; inset: auto 1rem 5.5rem auto; width: min(92vw, 27rem); max-height: min(75vh, 42rem); margin: 0; padding: 1.5rem; border: 1px solid rgba(30,37,32,.12); background: #f7f3ea; color: #1e2520; box-shadow: 0 20px 70px rgba(0,0,0,.3); }
+    .menu-cart-dialog::backdrop { background: rgba(0,0,0,.45); }
+    .menu-cart-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(30,37,32,.14); }
+    .menu-cart-close { display: grid; width: 2.75rem; height: 2.75rem; place-items: center; border: 1px solid rgba(30,37,32,.2); border-radius: 999px; font-size: 1.7rem; line-height: 1; }
+    .menu-cart-items { max-height: 40vh; overflow-y: auto; }
+    .menu-cart-empty { padding: 1.5rem 0; color: rgba(30,37,32,.6); font-size: .9rem; }
+    .menu-cart-row { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: .2rem .8rem; padding: .9rem 0; border-bottom: 1px solid rgba(30,37,32,.1); }
+    .menu-cart-row-name { overflow-wrap: anywhere; font-family: Georgia,serif; }
+    .menu-cart-row-controls { display: flex; align-items: center; gap: .5rem; grid-column: 1 / -1; }
+    .menu-cart-row-controls button { width: 2rem; height: 2rem; border: 1px solid rgba(30,37,32,.2); border-radius: 50%; }
+    .menu-cart-row-price { font-size: .85rem; white-space: nowrap; }
+    .menu-cart-total { display: flex; justify-content: space-between; gap: 1rem; padding-top: 1rem; border-top: 1px solid #1e2520; font-size: 1.05rem; }
+    .menu-cart-continue { display: block; margin-top: 1rem; padding: .9rem 1rem; background: #c9904c; color: #fff; font-size: .72rem; font-weight: 700; text-align: center; text-decoration: none; text-transform: uppercase; letter-spacing: .08em; }
+    .menu-cart-continue[aria-disabled="true"] { pointer-events: none; background: #d7d4cc; color: #696b66; }
+    @media (prefers-reduced-motion: reduce) { .menu-category-tab, .menu-card, .menu-card-image img, .menu-add-button { transition: none; } }
+    @media (max-width: 380px) { .menu-cart-dialog { right: .5rem; bottom: 5rem; width: calc(100vw - 1rem); padding: 1rem; } }
+</style>
+
+<script>
+(() => {
+    const cart = new Map();
+    const count = document.getElementById('menu-cart-count');
+    const total = document.getElementById('menu-cart-total');
+    const items = document.getElementById('menu-cart-items');
+    const dialog = document.getElementById('menu-cart-dialog');
+    const continueLink = document.getElementById('menu-cart-continue');
+    const currency = value => `₱${value.toFixed(2)}`;
+
+    document.querySelectorAll('[data-category-tab]').forEach(tab => {
+        tab.addEventListener('click', () => {
+            const selected = tab.dataset.categoryTab;
+            document.querySelectorAll('[data-category-tab]').forEach(button => {
+                const active = button === tab;
+                button.classList.toggle('is-active', active);
+                button.setAttribute('aria-pressed', String(active));
+            });
+            document.querySelectorAll('[data-menu-category]').forEach(card => {
+                card.hidden = selected !== 'all' && card.dataset.menuCategory !== selected;
+            });
+        });
+    });
+
+    const renderCart = () => {
+        const quantity = [...cart.values()].reduce((sum, item) => sum + item.quantity, 0);
+        const subtotal = [...cart.values()].reduce((sum, item) => sum + item.price * item.quantity, 0);
+        count.textContent = String(quantity);
+        total.textContent = currency(subtotal);
+        continueLink.setAttribute('aria-disabled', String(quantity === 0));
+        items.replaceChildren();
+        if (!cart.size) {
+            const empty = document.createElement('p');
+            empty.className = 'menu-cart-empty';
+            empty.textContent = 'Your order is empty. Add something delicious to get started.';
+            items.append(empty);
+            return;
+        }
+        cart.forEach(item => {
+            const row = document.createElement('div');
+            row.className = 'menu-cart-row';
+            const name = document.createElement('span');
+            name.className = 'menu-cart-row-name';
+            name.textContent = item.name;
+            const price = document.createElement('span');
+            price.className = 'menu-cart-row-price';
+            price.textContent = currency(item.price * item.quantity);
+            const controls = document.createElement('div');
+            controls.className = 'menu-cart-row-controls';
+            const remove = document.createElement('button');
+            remove.type = 'button';
+            remove.textContent = '−';
+            remove.setAttribute('aria-label', `Remove one ${item.name}`);
+            remove.addEventListener('click', () => {
+                item.quantity -= 1;
+                if (item.quantity <= 0) cart.delete(item.id);
+                renderCart();
+            });
+            const quantityLabel = document.createElement('span');
+            quantityLabel.textContent = String(item.quantity);
+            const add = document.createElement('button');
+            add.type = 'button';
+            add.textContent = '+';
+            add.setAttribute('aria-label', `Add one ${item.name}`);
+            add.addEventListener('click', () => {
+                item.quantity = Math.min(20, item.quantity + 1);
+                renderCart();
+            });
+            controls.append(remove, quantityLabel, add);
+            row.append(name, price, controls);
+            items.append(row);
+        });
+    };
+
+    document.querySelectorAll('[data-menu-add]').forEach(button => {
+        button.addEventListener('click', () => {
+            const id = button.dataset.id;
+            const item = cart.get(id) || { id, name: button.dataset.name, price: Number(button.dataset.price), quantity: 0 };
+            if (item.quantity < 20) item.quantity += 1;
+            cart.set(id, item);
+            renderCart();
+            button.textContent = 'Added';
+            window.setTimeout(() => { button.textContent = 'Add to Order'; }, 900);
+        });
+    });
+
+    document.getElementById('menu-cart-button').addEventListener('click', () => dialog.showModal());
+    document.getElementById('menu-cart-close').addEventListener('click', () => dialog.close());
+    dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
+    continueLink.addEventListener('click', event => {
+        if (!cart.size) {
+            event.preventDefault();
+            return;
+        }
+        try { sessionStorage.setItem('casa-sonata-menu-cart', JSON.stringify([...cart.values()])); } catch (_) {}
+    });
+    renderCart();
+})();
+</script>
 {% endblock %}

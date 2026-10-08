@@ -16,6 +16,13 @@
     </div>
 </section>
 
+<section id="sales-by-source" class="panel activity" style="margin-top:14px">
+    <div class="panelhead"><h2>Sales by customer and payment type</h2><a class="subtle" href="{% url 'admin_payments' %}">View and filter payment records</a></div>
+    <div style="overflow:auto"><table><thead><tr><th>Period</th><th>Online sales</th><th>Walk-In sales</th><th>GCash</th><th>Cash</th><th>Combined income</th></tr></thead><tbody>
+    {% for label, totals in payment_breakdowns %}<tr><td>{{ label }}</td><td>₱{{ totals.online|floatformat:2 }}</td><td>₱{{ totals.walk_in|floatformat:2 }}</td><td>₱{{ totals.gcash|floatformat:2 }}</td><td>₱{{ totals.cash|floatformat:2 }}</td><td><strong>₱{{ totals.total|floatformat:2 }}</strong></td></tr>{% endfor %}
+    </tbody></table></div>
+</section>
+
 <section id="reports" class="panel activity" style="margin-top:14px">
     <div class="panelhead">
         <h2>Operations by period</h2>

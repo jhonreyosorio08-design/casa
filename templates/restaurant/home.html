@@ -4,7 +4,7 @@
 {% block content %}
 
 {% if site_content.announcement %}
-<div class="bg-gold px-6 py-3 text-center text-sm font-semibold text-white">
+<div class="bg-gold px-6 py-3 text-center text-sm font-semibold text-white" data-reveal>
     {{ site_content.announcement }}
 </div>
 {% endif %}
@@ -59,14 +59,6 @@
         .reveal-enabled [data-reveal].is-visible { opacity: 1; transform: translateY(0); }
         [data-reveal-list] > [data-reveal]:nth-child(2) { transition-delay: .12s; }
         [data-reveal-list] > [data-reveal]:nth-child(3) { transition-delay: .24s; }
-        @media (prefers-reduced-motion: reduce) {
-            .hero-slide { animation: none; }
-            .hero-slide-one { opacity: .65; }
-            .hero-copy > * { animation: none; }
-            .typing-cursor { border-right: 0; animation: none; }
-            .hero-title-glow { animation: none; }
-            .reveal-enabled [data-reveal] { opacity: 1; transform: none; transition: none; }
-        }
     </style>
 
     <div
@@ -116,10 +108,10 @@
 
 <section
     class="mx-auto grid max-w-7xl gap-12 px-6 py-24 lg:grid-cols-2 lg:px-10"
-    data-reveal
+    data-reveal-list
 >
 
-    <div>
+    <div data-reveal>
 
         <p
             class="text-xs font-bold uppercase tracking-[.25em] text-clay"
@@ -135,9 +127,7 @@
 
     </div>
 
-    <div
-        class="self-end text-lg leading-8 text-ink/70"
-    >
+    <div class="self-end text-lg leading-8 text-ink/70" data-reveal>
 
         <p>
             {{ site_content.introduction|default:'Casa Sonata brings the warmth of an Italian home to the heart of the city. Our menu follows the seasons, our pasta is made each morning, and every seat is set for a memorable evening.' }}
@@ -163,9 +153,7 @@
 
     <div class="mx-auto max-w-7xl">
 
-        <div
-            class="mb-10 flex items-end justify-between"
-        >
+        <div class="mb-10 flex items-end justify-between" data-reveal>
 
             <div>
 
@@ -251,7 +239,7 @@
 {% if upcoming_events %}
 <section class="px-6 py-20 lg:px-10" data-reveal>
     <div class="mx-auto max-w-7xl">
-        <div class="mb-10 flex items-end justify-between gap-6">
+        <div class="mb-10 flex items-end justify-between gap-6" data-reveal>
             <div>
                 <p class="text-xs font-bold uppercase tracking-[.25em] text-clay">Join us</p>
                 <h2 class="mt-3 font-serif text-5xl">Upcoming Events</h2>
@@ -288,23 +276,26 @@
 
     <div
         class="bg-olive px-8 py-20 text-center text-cream md:px-20"
-        data-reveal
+        data-reveal-list
     >
 
         <p
             class="text-xs font-bold uppercase tracking-[.25em] text-gold"
+            data-reveal
         >
             At your table
         </p>
 
         <h2
             class="mx-auto mt-5 max-w-md font-serif text-5xl leading-tight"
+            data-reveal
         >
             Save room for a beautiful evening.
         </h2>
 
         <p
             class="mx-auto mt-6 max-w-md leading-7 text-white/75"
+            data-reveal
         >
             For celebrations, date nights, and every Tuesday that deserves
             better than usual.
@@ -313,6 +304,7 @@
         <a
             href="{% url 'reservation' %}"
             class="mt-9 inline-block border border-gold px-6 py-3 text-xs font-bold uppercase tracking-widest text-gold hover:bg-gold hover:text-white"
+            data-reveal
         >
             Book a table
         </a>

@@ -19,7 +19,7 @@
       }
     };
   </script>
-  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}?v=notifications-modal-2">
 </head>
 <body class="bg-cream text-ink antialiased">
   <header class="site-header fixed top-0 z-20 w-full text-white">
@@ -29,7 +29,9 @@
         {{ site_content.restaurant_name|default:'Casa Sonata' }}
       </a>
 
-      <button id="menu-toggle" aria-label="Open menu" class="text-2xl md:hidden">☰</button>
+      <button id="menu-toggle" type="button" aria-label="Open menu" aria-controls="mobile-links" aria-expanded="false" class="mobile-menu-toggle">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
 
       <div id="nav-links" class="hidden items-center gap-7 text-xs font-semibold uppercase tracking-[.18em] md:flex">
         <a href="{% if user.is_superuser %}{% url 'public_home' %}{% else %}{% url 'home' %}{% endif %}" class="site-nav-link">Home</a>
@@ -59,7 +61,7 @@
           <button type="button" class="site-nav-link js-open-login">Log in</button>
         {% endif %}
         <a href="{% url 'reservation' %}" class="site-reservation-link border border-gold bg-gold px-4 py-3 text-white transition hover:border-clay hover:bg-clay">
-          Reserve a table
+          Book a Reservation
         </a>
       </div>
     </nav>
@@ -73,7 +75,7 @@
         <a href="{% url 'events' %}">Events</a>
         <a href="{% url 'contact' %}">Contact</a>
         {% if user.is_authenticated %}{% include 'restaurant/nav_notification_bell.html' %}<a href="{% url 'account_profile' %}">Profile &amp; account settings</a><a href="{% url 'account_dashboard' %}">Reservations, orders &amp; receipts</a>{% if user.is_staff and not user.is_superuser %}<a href="{% url 'staff_dashboard' %}">Staff dashboard</a>{% endif %}{% if user.is_superuser %}<a href="{% url 'admin_dashboard' %}">Administrator dashboard</a>{% endif %}<form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">Sign out ({{ user.username }})</button></form>{% else %}<button type="button" class="js-open-login text-left">Log in</button><a href="{% url 'register' %}">Create account</a>{% endif %}
-        <a href="{% url 'reservation' %}" class="text-gold">Reserve a table</a>
+        <a href="{% url 'reservation' %}" class="text-gold">Book a Reservation</a>
       </div>
     </div>
   </header>
@@ -122,6 +124,20 @@
     <p class="mx-auto mt-12 max-w-7xl border-t border-white/10 pt-6 text-xs text-white/40">© 2026 Casa Sonata. Crafted for unhurried dining.</p>
   </footer>
 
-  <script src="{% static 'js/main.js' %}?v=typing-3"></script>
+  {% if user.is_authenticated %}
+  <dialog id="notification-modal" aria-labelledby="notification-modal-title" aria-describedby="notification-modal-message">
+    <div class="notification-modal-content">
+      <div class="notification-modal-heading">
+        <button type="button" class="notification-modal-close" data-notification-modal-close aria-label="Close notification">&#215;</button>
+      </div>
+      <h2 id="notification-modal-title"></h2>
+      <div id="notification-modal-message"></div>
+      <p id="notification-modal-thanks" class="notification-modal-thanks"></p>
+      <button type="button" class="notification-modal-action" data-notification-modal-close>Close</button>
+    </div>
+  </dialog>
+  {% endif %}
+
+  <script src="{% static 'js/main.js' %}?v=notifications-modal-2"></script>
 </body>
 </html>

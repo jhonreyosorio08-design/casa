@@ -24,7 +24,7 @@
         {% for note in notifications %}
 
         <div
-            class="flex flex-wrap items-center justify-between gap-3 py-3"
+            class="flex flex-wrap items-center justify-between gap-3 py-3 {% if not note.is_read %}border-l-4 border-gold bg-gold/5 pl-3{% else %}border-l-4 border-transparent pl-3{% endif %}"
         >
 
             <div>

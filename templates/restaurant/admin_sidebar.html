@@ -1,4 +1,4 @@
-<aside class="side">
+<aside class="side" id="admin-sidebar">
 
     <a
         class="brand"
@@ -33,6 +33,10 @@
         Overview
     </a>
 
+    <a class="nav" href="{% url 'notification_center' %}">
+        Notifications{% if notification_count %} ({{ notification_count }} new){% endif %}
+    </a>
+
 
     <!-- Operations -->
 
@@ -53,24 +57,30 @@
         href="{% url 'admin_module' 'orders' %}"
     >
         <i>◉</i>
-        Orders
+        Food Orders
     </a>
+
+    <a class="nav" href="{% url 'admin_payments' %}?source=walk_in">Walk-In Transactions</a>
 
     <a class="nav" href="{% url 'admin_payments' %}">
         <i>₱</i>
-        GCash payments
+        Payments & verification
     </a>
+
+    <a class="nav" href="{% url 'admin_payments' %}?status=paid">Receipts</a>
 
     <a class="nav" href="{% url 'admin_module' 'events' %}">
         Events
     </a>
+
+    <a class="nav" href="{% url 'admin_module' 'website' %}">Website Content</a>
 
     <a
         class="nav"
         href="{% url 'admin_module' 'tables' %}"
     >
         <i>▤</i>
-        Tables 1–6
+        Tables
     </a>
 
 
@@ -154,7 +164,6 @@
         <i>▥</i>
         Reports
     </a>
-
 
     <!-- Account / Settings -->
 

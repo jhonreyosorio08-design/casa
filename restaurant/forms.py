@@ -100,12 +100,24 @@ class PaymentSubmissionForm(forms.Form):
 
 
 class WalkInReservationForm(forms.Form):
+    reservation_type = forms.ChoiceField(choices=(("dine_in", "Dine-In"), ("ktv", "KTV")), label="Service type", initial="dine_in", widget=forms.RadioSelect)
     name = forms.CharField(max_length=120, label="Guest name")
     email = forms.EmailField(required=False)
     phone = forms.CharField(max_length=30)
     guests = forms.IntegerField(min_value=1, max_value=20, initial=2)
-    table = forms.ModelChoiceField(queryset=DiningTable.objects.none())
-    cash_tendered = forms.DecimalField(min_value=0, decimal_places=2, max_digits=10, label="Cash received")
+    start_time = forms.TimeField(
+        label="KTV start time",
+        required=False,
+        initial=lambda: timezone.localtime().time().replace(second=0, microsecond=0),
+        widget=forms.TimeInput(attrs={"type": "time"}),
+    )
+    table = forms.ModelChoiceField(queryset=DiningTable.objects.none(), required=False)
+    room = forms.ModelChoiceField(queryset=KTVRoom.objects.none(), required=False, label="Available KTV room")
+    duration_hours = forms.IntegerField(min_value=1, max_value=12, initial=2, required=False, label="KTV hours")
+    payment_method = forms.ChoiceField(choices=(("cash", "Over the counter (Cash)"), ("gcash", "GCash")), initial="cash", label="Payment method")
+    cash_tendered = forms.DecimalField(min_value=0, decimal_places=2, max_digits=10, required=False, label="Cash received")
+    gcash_reference = forms.CharField(max_length=160, required=False, label="GCash transaction reference")
+    payment_verified = forms.BooleanField(required=False, label="I verified the GCash payment")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -113,6 +125,39 @@ class WalkInReservationForm(forms.Form):
         self.fields["table"].queryset = DiningTable.objects.filter(active=True, occupied=False).exclude(
             reservations__reservation_date=timezone.localdate(), reservations__status__in=active_bookings,
         ).distinct().order_by("name")
+        self.fields["room"].queryset = KTVRoom.objects.filter(active=True, status=KTVRoom.Status.AVAILABLE).order_by("name")
+
+    def clean(self):
+        cleaned = super().clean()
+        reservation_type = cleaned.get("reservation_type")
+        guests = cleaned.get("guests")
+        if reservation_type == "dine_in":
+            table = cleaned.get("table")
+            if not table:
+                self.add_error("table", "Choose an available table.")
+            elif guests and guests > table.seats:
+                self.add_error("guests", f"{table.name} seats up to {table.seats} guests.")
+        elif reservation_type == "ktv":
+            room = cleaned.get("room")
+            hours = cleaned.get("duration_hours")
+            start_time = cleaned.get("start_time")
+            if not room:
+                self.add_error("room", "Choose an available KTV room.")
+            elif guests and not room.min_capacity <= guests <= room.max_capacity and not (room.name == "Room A" and guests == 3):
+                self.add_error("guests", f"{room.name} accommodates {room.min_capacity}–{room.max_capacity} guests.")
+            if not hours:
+                self.add_error("duration_hours", "Enter the number of KTV hours.")
+            if not start_time:
+                self.add_error("start_time", "Enter the KTV start time.")
+        method = cleaned.get("payment_method")
+        if method == "cash" and cleaned.get("cash_tendered") is None:
+            self.add_error("cash_tendered", "Enter the cash received.")
+        if method == "gcash":
+            if not cleaned.get("gcash_reference"):
+                self.add_error("gcash_reference", "Enter the GCash transaction reference.")
+            if not cleaned.get("payment_verified"):
+                self.add_error("payment_verified", "Verify the GCash payment before completing this walk-in booking.")
+        return cleaned
 
 
 class ProfileUpdateForm(forms.ModelForm):
@@ -198,7 +243,9 @@ class KTVReservationForm(forms.ModelForm):
         guests = cleaned.get("guests")
         if not all((room, date, start, hours, guests)):
             return cleaned
-        if not room.min_capacity <= guests <= room.max_capacity:
+        # Room A can be booked by a small party when they specifically select it.
+        # Keep the configured capacity range for all other room/guest combinations.
+        if not room.min_capacity <= guests <= room.max_capacity and not (room.name == "Room A" and guests == 3):
             self.add_error("guests", f"{room.name} accommodates {room.min_capacity}–{room.max_capacity} guests.")
             return cleaned
         start_at = datetime.combine(date, start)

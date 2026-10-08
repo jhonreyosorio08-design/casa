@@ -52,9 +52,11 @@
         ====================================================== */
 
         .side {
-            position: sticky;
-            top: 0;
+            position: fixed;
+            inset: 0 auto 0 0;
+            width: 238px;
             height: 100vh;
+            overflow-y: auto;
             background: var(--dark);
             color: #f7f5ef;
             padding: 28px 18px;
@@ -123,6 +125,7 @@
         ====================================================== */
 
         .main {
+            grid-column: 2;
             padding: 28px 34px 54px;
             max-width: 1600px;
             width: 100%;
@@ -549,6 +552,7 @@
     ====================================================== -->
 
     {% include "restaurant/admin_sidebar.html" %}
+    <button class="sidebar-backdrop" id="admin-sidebar-backdrop" type="button" aria-label="Close navigation" hidden></button>
 
 
     <!-- =====================================================
@@ -564,6 +568,8 @@
 
         <header class="top">
 
+            <button class="mobile-menu" id="admin-mobile-menu" type="button" aria-controls="admin-sidebar" aria-expanded="false">Menu</button>
+
             <div>
 
                 <div class="kicker">
@@ -576,11 +582,14 @@
 
             </div>
 
-            <span class="adminbadge">
-                Superuser access
-            </span>
+            <div class="top-actions">
+                <a class="header-link" href="{% url 'notification_center' %}">Notifications{% if dashboard_unread_count %}<span class="count-badge">{{ dashboard_unread_count }}</span>{% endif %}</a>
+                <details class="profile-menu"><summary>{{ request.user.get_full_name|default:request.user.username }}</summary><div class="profile-popover"><a href="{% url 'account_profile' %}">Profile settings</a><a href="{% url 'admin_module' 'website' %}">Website content</a><span>Administrator</span></div></details>
+            </div>
 
         </header>
+
+        {% include "restaurant/dashboard_notifications.html" %}
 
 
         <!-- =================================================
@@ -592,7 +601,7 @@
             <article class="metric">
 
                 <div class="metriclabel">
-                    Today's sales
+                    Total sales · today
                 </div>
 
                 <div class="metricvalue">
@@ -609,15 +618,15 @@
             <article class="metric" id="orders">
 
                 <div class="metriclabel">
-                    Orders today
+                    Online sales
                 </div>
 
                 <div class="metricvalue">
-                    {{ orders_today }}
+                    ₱{{ today_breakdown.online|floatformat:2 }}
                 </div>
 
                 <div class="metricnote">
-                    {{ pending_payments }} pending GCash payments
+                    {{ orders_today }} orders today · {{ online_pending_payments }} online payments pending
                 </div>
 
             </article>
@@ -643,29 +652,29 @@
             <article class="metric">
 
                 <div class="metriclabel">
-                    Pending GCash payments
+                    GCash payments
                 </div>
 
                 <div class="metricvalue">
-                    {{ pending_payments }}
+                    ₱{{ today_breakdown.gcash|floatformat:2 }}
                 </div>
 
                 <div class="metricnote">
-                    Awaiting verification
+                    {{ online_pending_payments }} online payments pending verification
                 </div>
 
             </article>
 
             <article class="metric">
-                <div class="metriclabel">Occupied tables</div>
-                <div class="metricvalue">{{ occupied_tables }}</div>
-                <div class="metricnote">Active dine-in tables</div>
+                <div class="metriclabel">Walk-in sales</div>
+                <div class="metricvalue">₱{{ today_breakdown.walk_in|floatformat:2 }}</div>
+                <div class="metricnote">Staff recorded transactions today</div>
             </article>
 
             <article class="metric">
-                <div class="metriclabel">Active KTV rooms</div>
-                <div class="metricvalue">{{ active_ktv_rooms }}</div>
-                <div class="metricnote">Configured rooms</div>
+                <div class="metriclabel">Cash payments</div>
+                <div class="metricvalue">₱{{ today_breakdown.cash|floatformat:2 }}</div>
+                <div class="metricnote">Over-the-counter payments today</div>
             </article>
 
             <article class="metric">
@@ -675,11 +684,38 @@
             </article>
 
             <article class="metric">
-                <div class="metriclabel">Upcoming events</div>
-                <div class="metricvalue">{{ upcoming_event_count }}</div>
-                <div class="metricnote">Published events</div>
+                <div class="metriclabel">KTV bookings today</div>
+                <div class="metricvalue">{{ ktv_bookings_today.count }}</div>
+                <div class="metricnote">Scheduled rooms</div>
             </article>
 
+        </section>
+
+        <section class="periods" id="payment-breakdown" style="margin-top:18px;overflow-x:auto">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Sales breakdown</th>
+                        <th>Online customers</th>
+                        <th>Walk-in customers</th>
+                        <th>GCash</th>
+                        <th>Cash</th>
+                        <th>Combined total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in payment_breakdowns %}
+                    <tr>
+                        <td>{{ row.0 }}</td>
+                        <td>₱{{ row.1.online|floatformat:2 }}</td>
+                        <td>₱{{ row.1.walk_in|floatformat:2 }}</td>
+                        <td>₱{{ row.1.gcash|floatformat:2 }}</td>
+                        <td>₱{{ row.1.cash|floatformat:2 }}</td>
+                        <td class="net">₱{{ row.1.total|floatformat:2 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </section>
 
 
@@ -747,6 +783,59 @@
 
             </table>
 
+        </section>
+
+        <section class="dashboard-grid" id="admin-operations">
+            <article class="panel">
+                <div class="panelhead"><h2>Recent transactions</h2><a class="subtle" href="{% url 'admin_payments' %}">All payments</a></div>
+                <div style="overflow-x:auto"><table>
+                    <thead><tr><th>Customer</th><th>Source / method</th><th>Paid</th><th>Receipt</th></tr></thead>
+                    <tbody>
+                    {% for order in recent_transactions %}
+                    <tr>
+                        <td><strong>{{ order.reservation.name }}</strong><br><span class="subtle">{{ order.reservation.reference }}</span></td>
+                        <td><span class="status-badge">{{ order.reservation.get_source_display }}</span><br>{{ order.payment_method|title }}</td>
+                        <td>₱{{ order.total_amount|floatformat:2 }}<br><span class="subtle">{{ order.paid_at|date:'M j, g:i A' }}</span></td>
+                        <td><a href="{% url 'admin_receipt' order.pk %}">Receipt</a></td>
+                    </tr>
+                    {% empty %}<tr><td colspan="4" class="empty">No payments have been recorded yet.</td></tr>{% endfor %}
+                    </tbody>
+                </table></div>
+            </article>
+
+            <article class="panel">
+                <div class="panelhead"><h2>Pending online GCash</h2><a class="subtle" href="{% url 'admin_payments' %}?source=online&amp;payment_method=gcash&amp;status=pending">Review payments</a></div>
+                <ul class="dashboard-list">
+                    {% for order in pending_online_payments %}
+                    <li><strong>{{ order.reservation.name }} · {{ order.reservation.reference }}</strong><br>₱{{ order.total_amount|floatformat:2 }} · Ref: {{ order.gateway_reference|default:'Not provided' }}<br><span class="muted">{% for item in order.items.all %}{{ item.quantity }}× {{ item.name }}{% if not forloop.last %}, {% endif %}{% empty %}No food items{% endfor %}</span>{% if order.payment_proof %}<br><a href="{{ order.payment_proof.url }}" target="_blank" rel="noopener">View payment proof</a>{% endif %}</li>
+                    {% empty %}<li class="muted">No online payments are waiting for review.</li>{% endfor %}
+                </ul>
+            </article>
+
+            <article class="panel" id="admin-tables">
+                <div class="panelhead"><h2>Table status</h2><a class="subtle" href="{% url 'admin_module' 'tables' %}">Manage tables</a></div>
+                <ul class="dashboard-list">
+                    {% for table in tables %}<li><strong>{{ table.name }}</strong> <span class="status-badge {% if table.current_status_label == 'Occupied' or table.current_status_label == 'Preparing' %}warning{% endif %}">{{ table.current_status_label }}</span><span class="muted"> · {{ table.seats }} seats</span></li>{% empty %}<li class="muted">No active tables.</li>{% endfor %}
+                </ul>
+            </article>
+
+            <article class="panel" id="admin-ktv">
+                <div class="panelhead"><h2>KTV room status</h2><a class="subtle" href="{% url 'admin_module' 'ktv' %}">Manage KTV rooms</a></div>
+                <ul class="dashboard-list">
+                    {% for room in ktv_rooms %}<li><strong>{{ room.name }}</strong> <span class="status-badge {% if room.current_status_label == 'Occupied' or room.current_status_label == 'Overdue' %}warning{% endif %}">{{ room.current_status_label }}</span><br><span class="muted">{{ room.room_type }} · {{ room.hourly_price|floatformat:2 }} / hour</span></li>{% empty %}<li class="muted">No KTV rooms configured.</li>{% endfor %}
+                </ul>
+                <h3 style="margin-top:14px">Today’s sessions</h3>
+                <ul class="dashboard-list">
+                    {% for booking in ktv_bookings_today|slice:":5" %}<li><strong>{{ booking.ktv_room.name }} · {{ booking.name }}</strong> <span class="status-badge {% if booking.ktv_timing_status == 'Overdue' %}danger{% elif booking.ktv_timing_status == 'Ending Soon' %}warning{% endif %}">{{ booking.ktv_timing_status }}</span><br><span class="muted">{{ booking.reservation_time|time:'g:i A' }}–{{ booking.scheduled_end_at|date:'g:i A' }} · {{ booking.duration_hours }} hours · ₱{{ booking.ktv_fee|floatformat:2 }}</span></li>{% empty %}<li class="muted">No KTV bookings scheduled today.</li>{% endfor %}
+                </ul>
+            </article>
+
+            <article class="panel">
+                <div class="panelhead"><h2>Recent food orders</h2><a class="subtle" href="{% url 'admin_module' 'orders' %}">All orders</a></div>
+                <ul class="dashboard-list">
+                    {% for order in recent_orders %}<li><strong>{{ order.reservation.name }}</strong> <span class="status-badge">{{ order.reservation.get_source_display }}</span><br><span class="muted">{{ order.reservation.reference }} · {{ order.get_order_status_display }} · {{ order.get_payment_status_display }} · ₱{{ order.total_amount|floatformat:2 }}</span></li>{% empty %}<li class="muted">No orders have been recorded.</li>{% endfor %}
+                </ul>
+            </article>
         </section>
 
 
@@ -857,7 +946,7 @@
                         Website content
 
                         <span>
-                            Edit the homepage and contact content
+                            Edit website content and GCash account, QR code, and instructions
                         </span>
                     </a>
 
@@ -1029,7 +1118,7 @@
                     </li>
 
                     <li>
-                        <span>Customer notifications</span>
+                        <span>Unread activity notifications</span>
                         <strong>{{ notification_count }}</strong>
                     </li>
 
@@ -1149,6 +1238,22 @@
 
 </div>
 
+<script>
+(() => {
+  const sidebar = document.getElementById('admin-sidebar');
+  const toggle = document.getElementById('admin-mobile-menu');
+  const backdrop = document.getElementById('admin-sidebar-backdrop');
+  const closeMenu = () => { sidebar.classList.remove('is-open'); backdrop.hidden = true; toggle.setAttribute('aria-expanded', 'false'); };
+  toggle.addEventListener('click', () => {
+    const open = sidebar.classList.toggle('is-open');
+    backdrop.hidden = !open;
+    toggle.setAttribute('aria-expanded', String(open));
+  });
+  backdrop.addEventListener('click', closeMenu);
+  sidebar.querySelectorAll('a').forEach(link => link.addEventListener('click', closeMenu));
+  document.addEventListener('keydown', event => { if (event.key === 'Escape') closeMenu(); });
+})();
+</script>
 </body>
 
 </html>

@@ -32,6 +32,7 @@
 
 <form
     method="post"
+    id="preorder-form"
     class="mx-auto max-w-5xl px-6 py-16"
 >
 
@@ -49,6 +50,8 @@
         {% endfor %}
 
     {% endif %}
+
+    <p id="menu-cart-import-note" class="mb-6 hidden border border-gold/30 bg-white p-4 text-sm text-ink/70">Your menu selections have been added. You can adjust quantities before continuing.</p>
 
 
     <div class="space-y-14">
@@ -165,32 +168,28 @@
 
 
 <script>
+    const quantityInputs = [...document.querySelectorAll('.order-quantity')];
+    const updateOrderTotal = () => {
+        const total = quantityInputs.reduce((sum, input) => sum + Number(input.value || 0) * Number(input.dataset.price), 0);
+        document.getElementById('order-total').textContent = `₱${total.toFixed(2)}`;
+    };
 
-    document
-        .querySelectorAll('.order-quantity')
-        .forEach(input => {
-
-            input.addEventListener('input', () => {
-
-                let total = 0;
-
-                document
-                    .querySelectorAll('.order-quantity')
-                    .forEach(item => {
-
-                        total +=
-                            Number(item.value || 0) *
-                            Number(item.dataset.price);
-
-                    });
-
-                document.getElementById('order-total').textContent =
-                    `₱${total.toFixed(2)}`;
-
-            });
-
+    let importedMenuCart = false;
+    try {
+        const savedCart = JSON.parse(sessionStorage.getItem('casa-sonata-menu-cart') || '[]');
+        savedCart.forEach(item => {
+            const input = document.getElementById(`item_${item.id}`);
+            if (!input) return;
+            const quantity = Math.max(0, Math.min(20, Number.parseInt(item.quantity, 10) || 0));
+            input.value = String(quantity);
+            importedMenuCart = importedMenuCart || quantity > 0;
         });
+        sessionStorage.removeItem('casa-sonata-menu-cart');
+    } catch (_) {}
 
+    if (importedMenuCart) document.getElementById('menu-cart-import-note').classList.remove('hidden');
+    quantityInputs.forEach(input => input.addEventListener('input', updateOrderTotal));
+    updateOrderTotal();
 </script>
 
 

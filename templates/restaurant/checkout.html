@@ -61,6 +61,22 @@
         <div class="border border-gold/40 bg-white p-6">
             <p class="text-xs font-bold uppercase tracking-[.2em] text-gold">Step 1 · Pay with GCash</p>
             <p class="mt-3 leading-7">Send <strong>₱{{ total_amount|floatformat:2 }}</strong> to Casa Sonata using the restaurant’s official GCash account or QR code. Complete the transfer in GCash first. Keep the successful transaction screen so you can upload it as proof.</p>
+            <div class="mt-6 grid gap-5 rounded border border-ink/10 bg-[#faf9f5] p-4 sm:grid-cols-[minmax(0,260px)_1fr] sm:items-center sm:p-6">
+                {% if site_content.gcash_qr_code %}
+                    <div class="text-center">
+                        <img class="mx-auto aspect-square w-full max-w-[260px] border border-ink/10 bg-white p-3 object-contain" src="{{ site_content.gcash_qr_code.url }}" alt="Official Casa Sonata GCash QR code" loading="eager">
+                        <p class="mt-2 text-xs text-ink/60">Scan this official Casa Sonata QR code in GCash.</p>
+                    </div>
+                {% else %}
+                    <div class="flex aspect-square max-w-[260px] items-center justify-center border border-dashed border-ink/25 bg-white p-5 text-center text-sm text-ink/60">GCash QR code not available. Use the account details or ask staff for assistance.</div>
+                {% endif %}
+                <div class="space-y-3 text-sm">
+                    {% if site_content.gcash_account_name %}<p>Account name<br><strong class="text-base">{{ site_content.gcash_account_name }}</strong></p>{% endif %}
+                    {% if site_content.gcash_number %}<p>GCash number<br><strong class="text-base">{{ site_content.gcash_number }}</strong></p>{% endif %}
+                    {% if site_content.gcash_instructions %}<div class="border-t border-ink/10 pt-3 leading-6">{{ site_content.gcash_instructions|linebreaksbr }}</div>{% endif %}
+                    {% if not site_content.gcash_qr_code and not site_content.gcash_account_name and not site_content.gcash_number %}<p class="text-ink/65">Casa Sonata’s GCash payment details have not been added yet. Please contact the restaurant before sending payment.</p>{% endif %}
+                </div>
+            </div>
             <p class="mt-2 text-sm text-ink/60">Your order will stay pending until staff verify the payment details.</p>
             <label class="mt-5 flex cursor-pointer items-start gap-3 text-sm font-semibold" for="payment_completed">
                 <input class="mt-1" type="checkbox" id="payment_completed" name="payment_completed" value="on" required>
